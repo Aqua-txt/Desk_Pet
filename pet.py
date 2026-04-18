@@ -1,27 +1,35 @@
 import sys
-import random
-from datetime import date, datetime
+from datetime import date
+import os
+import re
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
     QApplication,
-    QGraphicsColorizeEffect,
     QInputDialog,
     QLabel,
     QMainWindow,
     QMenu,
     QMessageBox,
+    QProgressBar,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtGui import QAction, QColor, QDesktopServices, QPixmap
-from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtGui import QAction, QDesktopServices, QPixmap
+from PyQt6.QtCore import Qt, QUrl, QUrlQuery
+from services.doubao_summary_service import load_dotenv_file
 from services import DouyinSummaryPipeline
 from storage import DouyinLinkStore, PetGrowthStore, SummaryStore
-from ui import SavedLinksDialog, SummaryDialog
+from ui import SavedLinksDialog
 
 # 桌面宠物类
 class DesktopPet(QMainWindow):
-    PET_IMAGE_PATH = Path("Animations") / "Images" / "ComfyUI_00094_.png"
+    PET_IMAGES_DIR = Path("Animations") / "Images"
     WEB_HOME_PAGE = Path("web") / "index.html"
+    WEB_GROWTH_PANEL_PAGE = Path("web") / "growth_panel.html"
+    WEB_CORNER_LOG_PAGE = Path("web") / "corner_log.html"
+    WEB_PASSION_CHECKIN_PAGE = Path("web") / "passion_checkin.html"
+    WEB_FUTURE_MESSAGE_PAGE = Path("web") / "future_message.html"
     WEB_FALLBACK_URL = "https://www.wuhanuniversity.edu.cn/"
     LEVEL_CONFIGS = [
         {"level": 1, "title": "初来乍到", "min_exp": 0, "size": 118, "color": "#9FB3D9"},
@@ -34,42 +42,93 @@ class DesktopPet(QMainWindow):
     def __init__(self):
         super().__init__()
         self.drag_pos = None
+        self.press_pos = None
         self.link_store = DouyinLinkStore(Path("data") / "douyin_links.json")
         self.summary_store = SummaryStore(Path("data") / "video_summaries.json")
         self.growth_store = PetGrowthStore(Path("data") / "pet_growth.json")
         self.growth_state = self.growth_store.load_state()
         self.summary_pipeline = DouyinSummaryPipeline()
 
-        self.base_pet_pixmap = self.load_base_pet_image()
+        self.pet_frames = self.load_pet_frames()
+        self.current_pet_index = 0
         self.pet_pixmap = self.load_scaled_pet_image(self.current_level_config()["size"])
-        self.init_window()
-
         self.label = QLabel(self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
-        self.setCentralWidget(self.label)
+        self.label.setStyleSheet("background: transparent; border: none;")
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.progress_bar.setTextVisible(False)
+        self.progress_bar.setFixedHeight(8)
+        self.progress_bar.setStyleSheet(
+            """
+            QProgressBar {
+                border: 1px solid rgba(255, 255, 255, 85);
+                border-radius: 4px;
+                background: rgba(20, 24, 35, 150);
+            }
+            QProgressBar::chunk {
+                border-radius: 4px;
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #66ccff, stop:1 #4f7bff
+                );
+            }
+            """
+        )
+        self.level_label = QLabel(self)
+        self.level_label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.level_label.setStyleSheet(
+            "color: #EAF0FF; font-size: 12px; font-weight: bold; background: transparent;"
+        )
 
-        self.color_effect = QGraphicsColorizeEffect(self.label)
-        self.label.setGraphicsEffect(self.color_effect)
+        self.panel = QWidget(self)
+        self.panel.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        panel_layout = QVBoxLayout(self.panel)
+        panel_layout.setContentsMargins(0, 0, 0, 0)
+        panel_layout.setSpacing(4)
+        panel_layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignCenter)
+        panel_layout.addWidget(self.progress_bar)
+        panel_layout.addWidget(self.level_label, alignment=Qt.AlignmentFlag.AlignRight)
+        self.setCentralWidget(self.panel)
+
+        self.init_window()
         self.refresh_pet_appearance()
+        self.refresh_learning_ui()
 
     def init_window(self):
         self.setWindowTitle("樱小宠")
-        self.setFixedSize(self.pet_pixmap.size())
+        self.update_window_size()
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowStaysOnTopHint
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
-    def load_base_pet_image(self) -> QPixmap:
-        pixmap = QPixmap(str(self.PET_IMAGE_PATH))
-        if pixmap.isNull():
-            raise FileNotFoundError(f"未找到桌宠图片: {self.PET_IMAGE_PATH}")
-        return pixmap
+    def load_pet_frames(self) -> list[QPixmap]:
+        frames: list[tuple[int, QPixmap]] = []
+        for image_path in self.PET_IMAGES_DIR.glob("ComfyUI_*.png"):
+            match = re.fullmatch(r"ComfyUI_(\d+)\.png", image_path.name)
+            if not match:
+                continue
+
+            order = int(match.group(1))
+            pixmap = QPixmap(str(image_path))
+            if pixmap.isNull():
+                continue
+            frames.append((order, pixmap))
+
+        if not frames:
+            raise FileNotFoundError(
+                f"未找到可用桌宠图片，请检查目录：{self.PET_IMAGES_DIR}（需要 ComfyUI_1.png 这类文件）"
+            )
+
+        frames.sort(key=lambda item: item[0])
+        return [pixmap for _, pixmap in frames]
 
     def load_scaled_pet_image(self, size: int) -> QPixmap:
-        return self.base_pet_pixmap.scaled(
+        base_pixmap = self.pet_frames[self.current_pet_index]
+        return base_pixmap.scaled(
             size,
             size,
             Qt.AspectRatioMode.KeepAspectRatio,
@@ -80,15 +139,25 @@ class DesktopPet(QMainWindow):
         level = self.current_level_config()
         self.pet_pixmap = self.load_scaled_pet_image(level["size"])
         self.label.setPixmap(self.pet_pixmap)
-        self.setFixedSize(self.pet_pixmap.size())
-        self.color_effect.setColor(QColor(level["color"]))
-        self.color_effect.setStrength(0.25 + (level["level"] - 1) * 0.08)
+        self.label.setFixedSize(self.pet_pixmap.size())
+        self.update_window_size()
         self.setWindowTitle(f"樱小宠 Lv{level['level']} · {level['title']}")
         self.setToolTip(
             f"等级: Lv{level['level']} {level['title']}\n"
             f"经验值: {self.growth_state['exp']}\n"
             f"连续打卡: {self.growth_state['streak_days']} 天"
         )
+
+    def update_window_size(self):
+        width = max(self.pet_pixmap.width(), 180)
+        height = self.pet_pixmap.height() + 8 + 4 + 18
+        self.setFixedSize(width, height)
+
+    def refresh_learning_ui(self):
+        stats = self.link_store.get_learning_stats()
+        self.progress_bar.setMaximum(int(stats["progress_total"]))
+        self.progress_bar.setValue(int(stats["level_progress"]))
+        self.level_label.setText(f"Lv.{stats['level']}  经验 {stats['exp']}")
 
     def current_level_config(self) -> dict:
         exp = int(self.growth_state.get("exp", 0))
@@ -114,13 +183,22 @@ class DesktopPet(QMainWindow):
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
             self.drag_pos = event.globalPosition().toPoint() - self.pos()
+            self.press_pos = event.globalPosition().toPoint()
         elif event.button() == Qt.MouseButton.RightButton:
             self.drag_pos = None
             self.show_context_menu(event.globalPosition().toPoint())
 
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
+            release_pos = event.globalPosition().toPoint()
+            if self.press_pos is not None and (release_pos - self.press_pos).manhattanLength() <= 4:
+                self.switch_to_next_pet_image()
             self.drag_pos = None
+            self.press_pos = None
+
+    def switch_to_next_pet_image(self):
+        self.current_pet_index = (self.current_pet_index + 1) % len(self.pet_frames)
+        self.refresh_pet_appearance()
 
     def show_context_menu(self, global_pos):
         menu = QMenu(self)
@@ -130,7 +208,6 @@ class DesktopPet(QMainWindow):
         future_action = QAction("生成三年后寄语", self)
         open_web_action = QAction("打开成长主页", self)
         add_link_action = QAction("输入抖音链接", self)
-        summarize_action = QAction("生成视频总结", self)
         view_links_action = QAction("查看已保存链接", self)
         exit_action = QAction("退出", self)
 
@@ -140,7 +217,6 @@ class DesktopPet(QMainWindow):
         future_action.triggered.connect(self.generate_future_message)
         open_web_action.triggered.connect(self.open_growth_web_page)
         add_link_action.triggered.connect(self.add_douyin_link)
-        summarize_action.triggered.connect(self.generate_video_summary)
         view_links_action.triggered.connect(self.show_saved_links)
         exit_action.triggered.connect(self.close)
 
@@ -151,7 +227,6 @@ class DesktopPet(QMainWindow):
         menu.addAction(open_web_action)
         menu.addSeparator()
         menu.addAction(add_link_action)
-        menu.addAction(summarize_action)
         menu.addAction(view_links_action)
         menu.addSeparator()
         menu.addAction(exit_action)
@@ -168,122 +243,40 @@ class DesktopPet(QMainWindow):
             return
 
         self.link_store.save_link(link)
-        QMessageBox.information(self, "保存成功", "抖音链接已保存。")
-
-    def show_saved_links(self):
-        dialog = SavedLinksDialog(self.link_store, self)
-        dialog.exec()
-
-    def generate_video_summary(self):
-        raw_input, ok = QInputDialog.getText(
-            self,
-            "生成视频总结",
-            "请输入抖音分享文案或链接：",
-        )
-        if not ok:
-            return
-
-        if not raw_input.strip():
-            QMessageBox.warning(self, "输入无效", "输入不能为空。")
-            return
 
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         try:
-            result = self.summary_pipeline.run(raw_input)
+            result = self.summary_pipeline.run(link)
+            self.summary_store.add_summary(
+                raw_input=result.raw_input,
+                short_url=result.short_url,
+                resolved_url=result.resolved_url,
+                extracted_text=result.extracted_text,
+                summary=result.summary,
+            )
         except Exception as exc:
-            QMessageBox.warning(self, "总结失败", str(exc))
+            QMessageBox.warning(self, "已保存链接", f"抖音链接已保存，但自动总结失败：{exc}")
             return
         finally:
             QApplication.restoreOverrideCursor()
 
-        self.link_store.save_link(raw_input)
-        self.summary_store.add_summary(
-            raw_input=result.raw_input,
-            short_url=result.short_url,
-            resolved_url=result.resolved_url,
-            extracted_text=result.extracted_text,
-            summary=result.summary,
-        )
+        QMessageBox.information(self, "保存成功", "抖音链接已保存，并已自动生成视频总结。")
+        self.refresh_learning_ui()
 
-        dialog = SummaryDialog("视频总结结果", result.summary, self)
+    def show_saved_links(self):
+        dialog = SavedLinksDialog(
+            self.link_store,
+            self.summary_store,
+            self,
+            on_learning_status_changed=self.refresh_learning_ui,
+        )
         dialog.exec()
 
     def add_corner_log(self):
-        corner_name, ok = QInputDialog.getText(self, "记录角落", "角落名称（例如：老教学楼侧门小路）：")
-        if not ok:
-            return
-        corner_name = corner_name.strip()
-        if not corner_name:
-            QMessageBox.warning(self, "输入无效", "角落名称不能为空。")
-            return
-
-        categories = ["设施问题", "人文故事", "安静学习点", "情绪治愈地", "其他"]
-        category, ok = QInputDialog.getItem(self, "角落分类", "请选择分类：", categories, 0, False)
-        if not ok:
-            return
-
-        feeling, ok = QInputDialog.getText(self, "补充描述", "你想对这个角落说什么（可选）：")
-        if not ok:
-            return
-
-        self.growth_state["corner_logs"].append(
-            {
-                "corner_name": corner_name,
-                "category": category,
-                "feeling": feeling.strip(),
-                "created_at": datetime.now().isoformat(timespec="seconds"),
-            }
-        )
-        self.growth_state["corner_logs"] = self.growth_state["corner_logs"][-80:]
-        result = self.apply_growth(exp_gain=10)
-        QMessageBox.information(
-            self,
-            "记录完成",
-            self.build_growth_message("已记录你的角落观察，成长值 +10。", result),
-        )
+        self.open_local_web_page(self.WEB_CORNER_LOG_PAGE)
 
     def add_passion_task(self):
-        task_name, ok = QInputDialog.getText(self, "热爱打卡", "今天完成了什么热爱行动：")
-        if not ok:
-            return
-        task_name = task_name.strip()
-        if not task_name:
-            QMessageBox.warning(self, "输入无效", "热爱行动不能为空。")
-            return
-
-        minutes, ok = QInputDialog.getInt(
-            self,
-            "投入时长",
-            "本次投入分钟数：",
-            value=30,
-            min=10,
-            max=600,
-            step=10,
-        )
-        if not ok:
-            return
-
-        note, ok = QInputDialog.getText(self, "行动备注", "本次收获（可选）：")
-        if not ok:
-            return
-
-        dynamic_bonus = min((minutes // 30) * 2, 10)
-        exp_gain = 15 + dynamic_bonus
-        self.growth_state["passion_tasks"].append(
-            {
-                "task_name": task_name,
-                "minutes": minutes,
-                "note": note.strip(),
-                "created_at": datetime.now().isoformat(timespec="seconds"),
-            }
-        )
-        self.growth_state["passion_tasks"] = self.growth_state["passion_tasks"][-120:]
-        result = self.apply_growth(exp_gain=exp_gain)
-        QMessageBox.information(
-            self,
-            "打卡成功",
-            self.build_growth_message(f"热爱行动已打卡，成长值 +{exp_gain}。", result),
-        )
+        self.open_local_web_page(self.WEB_PASSION_CHECKIN_PAGE)
 
     def apply_growth(self, exp_gain: int) -> dict:
         level_before = self.current_level_config()["level"]
@@ -346,70 +339,21 @@ class DesktopPet(QMainWindow):
         return "\n".join(lines)
 
     def show_growth_panel(self):
-        current = self.current_level_config()
-        next_level = self.next_level_config()
-        corner_count = len(self.growth_state["corner_logs"])
-        passion_count = len(self.growth_state["passion_tasks"])
-        message_count = len(self.growth_state["future_messages"])
-        latest_corner = self.growth_state["corner_logs"][-1]["corner_name"] if corner_count else "暂无"
-        latest_passion = self.growth_state["passion_tasks"][-1]["task_name"] if passion_count else "暂无"
-
-        lines = [
-            f"当前等级：Lv{current['level']} · {current['title']}",
-            f"经验值：{self.growth_state['exp']}",
-            f"连续打卡：{self.growth_state['streak_days']} 天",
-        ]
-        if next_level:
-            remaining = max(0, int(next_level["min_exp"]) - int(self.growth_state["exp"]))
-            lines.append(f"距离 Lv{next_level['level']} 还差：{remaining} 经验值")
-        else:
-            lines.append("已达到最高等级，继续打卡可维持光芒状态。")
-
-        lines.extend(
-            [
-                "",
-                f"角落记录数：{corner_count}",
-                f"热爱打卡数：{passion_count}",
-                f"未来寄语数：{message_count}",
-                "",
-                f"最近角落：{latest_corner}",
-                f"最近热爱：{latest_passion}",
-            ]
-        )
-        dialog = SummaryDialog("樱小宠成长面板", "\n".join(lines), self)
-        dialog.exec()
+        self.open_local_web_page(self.WEB_GROWTH_PANEL_PAGE)
 
     def generate_future_message(self):
-        current = self.current_level_config()
-        latest_corner = self.growth_state["corner_logs"][-1]["corner_name"] if self.growth_state["corner_logs"] else "武大某个还没被点亮的角落"
-        latest_passion = self.growth_state["passion_tasks"][-1]["task_name"] if self.growth_state["passion_tasks"] else "你真正热爱的事情"
-        streak = int(self.growth_state["streak_days"])
+        self.open_local_web_page(self.WEB_FUTURE_MESSAGE_PAGE)
 
-        templates = [
-            "三年后的你会记得今天在「{corner}」的观察，因为那是你把热爱「{passion}」变成长期行动的起点。",
-            "未来的你想对现在说：继续在「{corner}」发现问题并行动，你在「{passion}」上的坚持会成为核心竞争力。",
-            "如果把这份热爱坚持三年，你会在武汉大学留下自己的坐标：从「{corner}」出发，用「{passion}」影响更多人。",
-            "三年后的你正在感谢今天的你：没有忽视「{corner}」，也没有放弃「{passion}」。",
-        ]
-        tail = (
-            f"\n\n成长建议：保持连续打卡，当前已坚持 {streak} 天。"
-            if streak
-            else "\n\n成长建议：先从连续 3 天小目标开始。"
-        )
-        message = random.choice(templates).format(corner=latest_corner, passion=latest_passion) + tail
+    def open_local_web_page(self, local_page: Path):
+        page = local_page.resolve()
+        if not page.exists():
+            QMessageBox.warning(self, "打开失败", f"未找到网页文件：{local_page}")
+            return
 
-        self.growth_state["future_messages"].append(
-            {
-                "content": message,
-                "level": current["level"],
-                "created_at": datetime.now().isoformat(timespec="seconds"),
-            }
-        )
-        self.growth_state["future_messages"] = self.growth_state["future_messages"][-50:]
-        self.growth_store.save_state(self.growth_state)
-
-        dialog = SummaryDialog("三年后的自己 · 寄语", message, self)
-        dialog.exec()
+        target_url = QUrl.fromLocalFile(str(page))
+        ok = QDesktopServices.openUrl(target_url)
+        if not ok:
+            QMessageBox.warning(self, "打开失败", f"无法打开网页：{target_url.toString()}")
 
     def open_growth_web_page(self):
         local_page = self.WEB_HOME_PAGE.resolve()

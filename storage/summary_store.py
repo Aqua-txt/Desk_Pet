@@ -21,17 +21,39 @@ class SummaryStore:
         summary: str,
     ) -> None:
         records = self._load_records()
-        records.append(
-            {
-                "raw_input": raw_input,
-                "short_url": short_url,
-                "resolved_url": resolved_url,
-                "extracted_text": extracted_text,
-                "summary": summary,
-                "created_at": datetime.now().isoformat(timespec="seconds"),
-            }
-        )
+        now = datetime.now().isoformat(timespec="seconds")
+        new_record = {
+            "raw_input": raw_input,
+            "short_url": short_url,
+            "resolved_url": resolved_url,
+            "extracted_text": extracted_text,
+            "summary": summary,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        updated = False
+        for index, item in enumerate(records):
+            if not isinstance(item, dict):
+                continue
+            if item.get("short_url") == short_url:
+                # 以短链为唯一键，保持与已保存链接一一对应
+                new_record["created_at"] = item.get("created_at", now)
+                records[index] = new_record
+                updated = True
+                break
+
+        if not updated:
+            records.append(new_record)
         self._write_records(records)
+
+    def get_summary_by_short_url(self, short_url: str) -> dict | None:
+        for item in self._load_records():
+            if not isinstance(item, dict):
+                continue
+            if item.get("short_url") == short_url:
+                return item
+        return None
 
     def _load_records(self) -> list[dict]:
         if not self.file_path.exists():

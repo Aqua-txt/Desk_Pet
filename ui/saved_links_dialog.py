@@ -16,9 +16,11 @@ from ui.theme import AnimatedButton
 
 
 class SavedLinksDialog(QDialog):
-    def __init__(self, link_store, parent=None):
+    def __init__(self, link_store, summary_store, parent=None, on_learning_status_changed=None):
         super().__init__(parent)
         self.link_store = link_store
+        self.summary_store = summary_store
+        self.on_learning_status_changed = on_learning_status_changed
         self.setWindowTitle("已保存链接")
         self.resize(760, 420)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
@@ -57,7 +59,10 @@ class SavedLinksDialog(QDialog):
         self.main_layout.setContentsMargins(14, 14, 14, 14)
         self.main_layout.setSpacing(10)
 
-        self.tip_label = QLabel("点击链接可直接打开抖音视频，右侧可删除该记录。", self)
+        self.tip_label = QLabel(
+            "点击链接可打开抖音；可切换已学习状态；点击“总结视频内容”可查看已生成总结。",
+            self,
+        )
         self.main_layout.addWidget(self.tip_label)
 
         self.scroll_area = QScrollArea(self)
@@ -96,6 +101,7 @@ class SavedLinksDialog(QDialog):
         record_index = record["index"]
         url = record["url"]
         display_text = record.get("display_text", url)
+        learned = bool(record.get("learned", False))
         created_at = record.get("created_at", "")
         button_text = display_text if len(display_text) <= 72 else f"{display_text[:72]}..."
         if created_at:
@@ -104,6 +110,16 @@ class SavedLinksDialog(QDialog):
         open_button = AnimatedButton(button_text, role="soft", parent=row)
         open_button.setToolTip(f"{display_text}\n{url}")
         open_button.clicked.connect(partial(self.open_link, url))
+
+        summary_button = AnimatedButton("总结视频内容", role="soft", parent=row)
+        summary_button.setFixedWidth(120)
+        summary_button.clicked.connect(partial(self.show_summary, url))
+
+        learn_button_text = "已学习" if learned else "未学习"
+        learn_button_role = "soft" if learned else "primary"
+        learn_button = AnimatedButton(learn_button_text, role=learn_button_role, parent=row)
+        learn_button.setFixedWidth(88)
+        learn_button.clicked.connect(partial(self.toggle_learned, record_index, learned))
 
         delete_button = AnimatedButton("删除", role="danger", parent=row)
         delete_button.setFixedWidth(72)
@@ -114,6 +130,8 @@ class SavedLinksDialog(QDialog):
         delete_button.clicked.connect(partial(self.delete_link, record_index))
 
         row_layout.addWidget(open_button, 1)
+        row_layout.addWidget(learn_button, 0)
+        row_layout.addWidget(summary_button, 0)
         row_layout.addWidget(delete_button, 0)
         return row
 
@@ -132,4 +150,39 @@ class SavedLinksDialog(QDialog):
         if not ok:
             QMessageBox.warning(self, "删除失败", "该链接不存在或已被删除。")
             return
+        if callable(self.on_learning_status_changed):
+            self.on_learning_status_changed()
         self.refresh_links()
+
+    def toggle_learned(self, index: int, current: bool):
+        ok = self.link_store.set_learned(index, not current)
+        if not ok:
+            QMessageBox.warning(self, "更新失败", "学习状态更新失败，请稍后重试。")
+            return
+        if callable(self.on_learning_status_changed):
+            self.on_learning_status_changed()
+        self.refresh_links()
+
+    def show_summary(self, url: str):
+        normalized = self.link_store.extract_douyin_url(url)
+        if not normalized:
+            QMessageBox.warning(self, "查看失败", "该链接无效，无法读取总结。")
+            return
+
+        record = self.summary_store.get_summary_by_short_url(normalized)
+        if not record:
+            QMessageBox.information(self, "暂无总结", "该视频暂未生成总结，请重新保存该链接后再试。")
+            return
+
+        summary_content = str(record.get("summary", "")).strip()
+        if not summary_content:
+            QMessageBox.information(self, "暂无总结", "该视频总结内容为空。")
+            return
+
+        summary_time = record.get("updated_at") or record.get("created_at", "未知时间")
+        display_text = (
+            f"链接：{normalized}\n"
+            f"更新时间：{summary_time}\n\n"
+            f"{summary_content}"
+        )
+        QMessageBox.information(self, "视频总结", display_text)

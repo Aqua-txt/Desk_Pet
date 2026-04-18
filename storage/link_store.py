@@ -19,11 +19,27 @@ class DouyinLinkStore:
             return
 
         records = self._load_records()
+        now = datetime.now().isoformat(timespec="seconds")
+
+        # 同一链接只保留一条记录，避免重复添加影响学习统计
+        for item in records:
+            if not isinstance(item, dict):
+                continue
+            if item.get("url") == normalized_url:
+                item["raw_text"] = raw_text.strip()
+                item["updated_at"] = now
+                if "learned" not in item:
+                    item["learned"] = False
+                self._write_records(records)
+                return
+
         records.append(
             {
                 "raw_text": raw_text.strip(),
                 "url": normalized_url,
-                "created_at": datetime.now().isoformat(timespec="seconds"),
+                "learned": False,
+                "created_at": now,
+                "updated_at": now,
             }
         )
         self._write_records(records)
@@ -49,10 +65,37 @@ class DouyinLinkStore:
                     "index": index,
                     "url": url,
                     "display_text": display_text,
+                    "learned": bool(item.get("learned", False)),
                     "created_at": created_at if isinstance(created_at, str) else "",
                 }
             )
         return normalized_records
+
+    def set_learned(self, index: int, learned: bool) -> bool:
+        records = self._load_records()
+        if index < 0 or index >= len(records):
+            return False
+        if not isinstance(records[index], dict):
+            return False
+
+        records[index]["learned"] = bool(learned)
+        records[index]["updated_at"] = datetime.now().isoformat(timespec="seconds")
+        self._write_records(records)
+        return True
+
+    def get_learning_stats(self) -> dict:
+        links = self.get_links()
+        learned_count = sum(1 for item in links if item.get("learned"))
+        exp = learned_count * 5
+        level = (exp // 20) + 1
+        level_progress = exp % 20
+        return {
+            "learned_count": learned_count,
+            "exp": exp,
+            "level": level,
+            "level_progress": level_progress,
+            "progress_total": 20,
+        }
 
     def delete_link(self, index: int) -> bool:
         records = self._load_records()
