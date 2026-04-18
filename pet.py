@@ -1,6 +1,4 @@
 import sys
-from datetime import date
-import os
 import re
 from pathlib import Path
 
@@ -16,8 +14,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 from PyQt6.QtGui import QAction, QDesktopServices, QPixmap
-from PyQt6.QtCore import Qt, QUrl, QUrlQuery
-from services.doubao_summary_service import load_dotenv_file
+from PyQt6.QtCore import Qt, QUrl
 from services import DouyinSummaryPipeline
 from storage import DouyinLinkStore, PetGrowthStore, SummaryStore
 from ui import SavedLinksDialog
@@ -26,10 +23,7 @@ from ui import SavedLinksDialog
 class DesktopPet(QMainWindow):
     PET_IMAGES_DIR = Path("Animations") / "Images"
     WEB_HOME_PAGE = Path("web") / "index.html"
-    WEB_GROWTH_PANEL_PAGE = Path("web") / "growth_panel.html"
-    WEB_CORNER_LOG_PAGE = Path("web") / "corner_log.html"
-    WEB_PASSION_CHECKIN_PAGE = Path("web") / "passion_checkin.html"
-    WEB_FUTURE_MESSAGE_PAGE = Path("web") / "future_message.html"
+    WEB_PASSION_CHECKIN = Path("web") / "passion-checkin.html"
     WEB_FALLBACK_URL = "https://www.wuhanuniversity.edu.cn/"
     LEVEL_CONFIGS = [
         {"level": 1, "title": "初来乍到", "min_exp": 0, "size": 118, "color": "#9FB3D9"},
@@ -169,13 +163,6 @@ class DesktopPet(QMainWindow):
                 break
         return current
 
-    def next_level_config(self) -> dict | None:
-        current_level = self.current_level_config()["level"]
-        for cfg in self.LEVEL_CONFIGS:
-            if cfg["level"] == current_level + 1:
-                return cfg
-        return None
-
     def mouseMoveEvent(self, event):
         if self.drag_pos is not None and (event.buttons() & Qt.MouseButton.LeftButton):
             self.move(event.globalPosition().toPoint() - self.drag_pos)
@@ -202,28 +189,19 @@ class DesktopPet(QMainWindow):
 
     def show_context_menu(self, global_pos):
         menu = QMenu(self)
-        growth_panel_action = QAction("查看成长面板", self)
-        corner_log_action = QAction("记录被忽视角落 (+10)", self)
         passion_action = QAction("热爱打卡 (+15起)", self)
-        future_action = QAction("生成三年后寄语", self)
         open_web_action = QAction("打开成长主页", self)
         add_link_action = QAction("输入抖音链接", self)
         view_links_action = QAction("查看已保存链接", self)
         exit_action = QAction("退出", self)
 
-        growth_panel_action.triggered.connect(self.show_growth_panel)
-        corner_log_action.triggered.connect(self.add_corner_log)
-        passion_action.triggered.connect(self.add_passion_task)
-        future_action.triggered.connect(self.generate_future_message)
+        passion_action.triggered.connect(lambda: self.open_web_page(self.WEB_PASSION_CHECKIN))
         open_web_action.triggered.connect(self.open_growth_web_page)
         add_link_action.triggered.connect(self.add_douyin_link)
         view_links_action.triggered.connect(self.show_saved_links)
         exit_action.triggered.connect(self.close)
 
-        menu.addAction(growth_panel_action)
-        menu.addAction(corner_log_action)
         menu.addAction(passion_action)
-        menu.addAction(future_action)
         menu.addAction(open_web_action)
         menu.addSeparator()
         menu.addAction(add_link_action)
@@ -272,99 +250,16 @@ class DesktopPet(QMainWindow):
         )
         dialog.exec()
 
-    def add_corner_log(self):
-        self.open_local_web_page(self.WEB_CORNER_LOG_PAGE)
-
-    def add_passion_task(self):
-        self.open_local_web_page(self.WEB_PASSION_CHECKIN_PAGE)
-
-    def apply_growth(self, exp_gain: int) -> dict:
-        level_before = self.current_level_config()["level"]
-        penalty_applied, streak_bonus = self.update_streak_and_penalty()
-        self.growth_state["exp"] = max(0, int(self.growth_state["exp"]) + exp_gain + streak_bonus)
-        self.growth_store.save_state(self.growth_state)
-        self.refresh_pet_appearance()
-
-        level_after = self.current_level_config()["level"]
-        return {
-            "penalty_applied": penalty_applied,
-            "streak_bonus": streak_bonus,
-            "leveled_up": level_after > level_before,
-            "level_after": level_after,
-        }
-
-    def update_streak_and_penalty(self) -> tuple[bool, int]:
-        today = date.today()
-        last_active = str(self.growth_state.get("last_active_date", "") or "").strip()
-        penalty_applied = False
-        streak_bonus = 0
-
-        if not last_active:
-            self.growth_state["streak_days"] = 1
-        else:
-            try:
-                last_day = date.fromisoformat(last_active)
-            except ValueError:
-                last_day = today
-
-            day_diff = (today - last_day).days
-            if day_diff <= 0:
-                pass
-            elif day_diff == 1:
-                self.growth_state["streak_days"] = int(self.growth_state["streak_days"]) + 1
-            else:
-                self.growth_state["exp"] = max(0, int(self.growth_state["exp"]) - 5)
-                self.growth_state["streak_days"] = 1
-                penalty_applied = True
-
-            if day_diff > 0 and int(self.growth_state["streak_days"]) % 3 == 0:
-                streak_bonus = 5
-
-        self.growth_state["last_active_date"] = today.isoformat()
-        return penalty_applied, streak_bonus
-
-    def build_growth_message(self, headline: str, result: dict) -> str:
-        lines = [headline]
-        if result["streak_bonus"] > 0:
-            lines.append(f"连续打卡奖励 +{result['streak_bonus']}。")
-        if result["penalty_applied"]:
-            lines.append("检测到长时间未互动，已触发 -5 衰减后重新起步。")
-        if result["leveled_up"]:
-            current = self.current_level_config()
-            lines.append(f"恭喜升级到 Lv{current['level']}：{current['title']}！")
-        lines.append(
-            f"当前状态：Lv{self.current_level_config()['level']}，经验值 {self.growth_state['exp']}，"
-            f"连续 {self.growth_state['streak_days']} 天。"
-        )
-        return "\n".join(lines)
-
-    def show_growth_panel(self):
-        self.open_local_web_page(self.WEB_GROWTH_PANEL_PAGE)
-
-    def generate_future_message(self):
-        self.open_local_web_page(self.WEB_FUTURE_MESSAGE_PAGE)
-
-    def open_local_web_page(self, local_page: Path):
-        page = local_page.resolve()
-        if not page.exists():
-            QMessageBox.warning(self, "打开失败", f"未找到网页文件：{local_page}")
-            return
-
-        target_url = QUrl.fromLocalFile(str(page))
+    def open_web_page(self, page_path: Path):
+        target_url = QUrl.fromLocalFile(str(page_path.resolve()))
+        if not page_path.exists():
+            target_url = QUrl(self.WEB_FALLBACK_URL)
         ok = QDesktopServices.openUrl(target_url)
         if not ok:
             QMessageBox.warning(self, "打开失败", f"无法打开网页：{target_url.toString()}")
 
     def open_growth_web_page(self):
-        local_page = self.WEB_HOME_PAGE.resolve()
-        if local_page.exists():
-            target_url = QUrl.fromLocalFile(str(local_page))
-        else:
-            target_url = QUrl(self.WEB_FALLBACK_URL)
-
-        ok = QDesktopServices.openUrl(target_url)
-        if not ok:
-            QMessageBox.warning(self, "打开失败", f"无法打开网页：{target_url.toString()}")
+        self.open_web_page(self.WEB_HOME_PAGE)
 
 # 主程序
 if __name__ == "__main__":
