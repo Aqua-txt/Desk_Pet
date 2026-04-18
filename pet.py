@@ -12,8 +12,8 @@ from PyQt6.QtWidgets import (
     QMenu,
     QMessageBox,
 )
-from PyQt6.QtGui import QAction, QColor, QDesktopServices, QPixmap
 from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtGui import QAction, QColor, QDesktopServices, QPixmap, QScreen
 from services import DouyinSummaryPipeline
 from storage import DouyinLinkStore, PetGrowthStore, SummaryStore
 from ui import SavedLinksDialog, SummaryDialog
@@ -43,6 +43,7 @@ class DesktopPet(QMainWindow):
         self.base_pet_pixmap = self.load_base_pet_image()
         self.pet_pixmap = self.load_scaled_pet_image(self.current_level_config()["size"])
         self.init_window()
+        self.move_to_bottom_right()
 
         self.label = QLabel(self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -61,6 +62,14 @@ class DesktopPet(QMainWindow):
             Qt.WindowType.WindowStaysOnTopHint
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+
+    def move_to_bottom_right(self, margin: int = 40):
+        screen: QScreen = self.screen()
+        screen_geo = screen.availableGeometry()
+        pet_geo = self.geometry()
+        x = screen_geo.right() - pet_geo.width() - margin
+        y = screen_geo.bottom() - pet_geo.height() - margin
+        self.move(x, y)
 
     def load_base_pet_image(self) -> QPixmap:
         pixmap = QPixmap(str(self.PET_IMAGE_PATH))
@@ -291,6 +300,7 @@ class DesktopPet(QMainWindow):
         self.growth_state["exp"] = max(0, int(self.growth_state["exp"]) + exp_gain + streak_bonus)
         self.growth_store.save_state(self.growth_state)
         self.refresh_pet_appearance()
+        self.move_to_bottom_right()
 
         level_after = self.current_level_config()["level"]
         return {
