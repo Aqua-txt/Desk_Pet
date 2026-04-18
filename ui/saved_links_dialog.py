@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from ui.theme import AnimatedButton
 
 
 class SavedLinksDialog(QDialog):
@@ -20,10 +21,41 @@ class SavedLinksDialog(QDialog):
         self.link_store = link_store
         self.setWindowTitle("已保存链接")
         self.resize(760, 420)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setStyleSheet(
+            """
+            QDialog {
+                background: transparent;
+            }
+            QWidget#Card {
+                background-color: rgba(14, 18, 32, 214);
+                border: 1px solid rgba(125, 149, 235, 135);
+                border-radius: 16px;
+            }
+            QLabel {
+                color: #EAF0FF;
+                font-size: 14px;
+            }
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollArea > QWidget > QWidget {
+                background: transparent;
+            }
+            """
+        )
 
-        self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(12, 12, 12, 12)
-        self.main_layout.setSpacing(8)
+        outer_layout = QVBoxLayout(self)
+        outer_layout.setContentsMargins(10, 10, 10, 10)
+
+        self.card = QWidget(self)
+        self.card.setObjectName("Card")
+        outer_layout.addWidget(self.card)
+
+        self.main_layout = QVBoxLayout(self.card)
+        self.main_layout.setContentsMargins(14, 14, 14, 14)
+        self.main_layout.setSpacing(10)
 
         self.tip_label = QLabel("点击链接可直接打开抖音视频，右侧可删除该记录。", self)
         self.main_layout.addWidget(self.tip_label)
@@ -69,13 +101,16 @@ class SavedLinksDialog(QDialog):
         if created_at:
             button_text = f"{button_text}  ({created_at})"
 
-        open_button = QPushButton(button_text, row)
+        open_button = AnimatedButton(button_text, role="soft", parent=row)
         open_button.setToolTip(f"{display_text}\n{url}")
-        open_button.setStyleSheet("text-align: left; padding: 6px;")
         open_button.clicked.connect(partial(self.open_link, url))
 
-        delete_button = QPushButton("删除", row)
+        delete_button = AnimatedButton("删除", role="danger", parent=row)
         delete_button.setFixedWidth(72)
+        delete_button.setStyleSheet(
+            delete_button.styleSheet()
+            + "QPushButton {text-align: center; padding: 8px 0px;}"
+        )
         delete_button.clicked.connect(partial(self.delete_link, record_index))
 
         row_layout.addWidget(open_button, 1)

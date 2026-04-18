@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QMenu,
     QMessageBox,
 )
-from PyQt6.QtGui import QAction, QPixmap, QColor
+from PyQt6.QtGui import QAction, QPixmap
 from PyQt6.QtCore import Qt
 from services import DouyinSummaryPipeline
 from storage import DouyinLinkStore, SummaryStore
@@ -17,34 +17,35 @@ from ui import SavedLinksDialog, SummaryDialog
 
 # 桌面宠物类
 class DesktopPet(QMainWindow):
+    PET_IMAGE_PATH = Path("Animations") / "Images" / "ComfyUI_00094_.png"
+    PET_SIZE = 128
+
     def __init__(self):
         super().__init__()
-        # 当前显示的动画索引（0-4，共5个）
-        self.current_anim = 0
         # 拖动偏移量，按下左键时记录，松开时清空
         self.drag_pos = None
+        # 加载桌宠形象
+        self.pet_pixmap = self.load_pet_image()
         # 初始化窗口
         self.init_window()
         # 初始化链接存储
         self.link_store = DouyinLinkStore(Path("data") / "douyin_links.json")
         self.summary_store = SummaryStore(Path("data") / "video_summaries.json")
         self.summary_pipeline = DouyinSummaryPipeline()
-        # 加载5个动画（纯色方块，可替换为图片）
-        self.load_animations()
         # 只创建一次标签，后续仅更新图片
         self.label = QLabel(self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         # 让主窗口统一处理鼠标事件，避免被 QLabel 抢占
         self.label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
         self.setCentralWidget(self.label)
-        # 显示第一个动画
-        self.show_animation()
+        # 显示桌宠形象
+        self.show_pet_image()
 
     # 配置窗口：无边框、透明、置顶、固定大小
     def init_window(self):
         self.setWindowTitle("桌面宠物")
-        # 窗口大小（宠物尺寸）
-        self.setFixedSize(150, 150)
+        # 窗口大小（宠物图片尺寸）
+        self.setFixedSize(self.pet_pixmap.size())
         # 核心设置：无边框 + 窗口置顶 + 透明背景
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |  # 去掉标题栏边框
@@ -52,30 +53,20 @@ class DesktopPet(QMainWindow):
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)  # 透明背景
 
-    # 加载5个动画（这里用纯色方块代替，可替换为宠物图片）
-    def load_animations(self):
-        self.animations = []
-        # 5种颜色 = 5个动画，你可以替换成自己的图片路径
-        colors = [QColor("red"), QColor("blue"), QColor("green"), QColor("yellow"), QColor("pink")]
-        
-        for color in colors:
-            pix = QPixmap(150, 150)
-            pix.fill(color)
-            self.animations.append(pix)
+    def load_pet_image(self) -> QPixmap:
+        pixmap = QPixmap(str(self.PET_IMAGE_PATH))
+        if pixmap.isNull():
+            raise FileNotFoundError(f"未找到桌宠图片: {self.PET_IMAGE_PATH}")
+        return pixmap.scaled(
+            self.PET_SIZE,
+            self.PET_SIZE,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
+        )
 
-        # ---------------- 替换为图片动画的方法 ----------------
-        # 把上面的代码删掉，换成下面的代码，图片放在代码同目录
-        # self.animations = [
-        #     QPixmap("pet1.png"),  # 动画1
-        #     QPixmap("pet2.png"),  # 动画2
-        #     QPixmap("pet3.png"),  # 动画3
-        #     QPixmap("pet4.png"),  # 动画4
-        #     QPixmap("pet5.png"),  # 动画5
-        # ]
-
-    # 显示当前动画
-    def show_animation(self):
-        self.label.setPixmap(self.animations[self.current_anim])
+    # 显示桌宠形象
+    def show_pet_image(self):
+        self.label.setPixmap(self.pet_pixmap)
 
     def mouseMoveEvent(self, event):
         if self.drag_pos is not None and (event.buttons() & Qt.MouseButton.LeftButton):
@@ -85,9 +76,6 @@ class DesktopPet(QMainWindow):
         if event.button() == Qt.MouseButton.LeftButton:
             # 记录拖动起始位置
             self.drag_pos = event.globalPosition().toPoint() - self.pos()
-            # 切换动画
-            self.current_anim = (self.current_anim + 1) % len(self.animations)
-            self.show_animation()
         elif event.button() == Qt.MouseButton.RightButton:
             self.drag_pos = None
             self.show_context_menu(event.globalPosition().toPoint())
