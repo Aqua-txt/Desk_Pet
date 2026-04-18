@@ -77,6 +77,61 @@
       z-index: 2;
     }
 
+    .campus-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .campus-bg .campus-art {
+      position: absolute;
+      max-width: none;
+      height: auto;
+      mix-blend-mode: multiply;
+      filter: sepia(1) hue-rotate(200deg) saturate(0.55) brightness(1.1) contrast(0.84);
+    }
+
+    .campus-top {
+      width: min(960px, 92vw);
+      right: -130px;
+      top: 8px;
+      opacity: 0.26;
+    }
+
+    .campus-mid {
+      width: min(760px, 76vw);
+      left: -70px;
+      top: 33vh;
+      opacity: 0.22;
+    }
+
+    .campus-bottom {
+      width: min(1020px, 98vw);
+      left: -160px;
+      bottom: -36px;
+      opacity: 0.20;
+    }
+
+    .campus-side {
+      width: min(540px, 56vw);
+      right: -120px;
+      top: 48vh;
+      opacity: 0.16;
+      transform: rotate(-2deg);
+    }
+
+    .campus-watermark {
+      position: fixed;
+      right: 24px;
+      bottom: 14px;
+      z-index: 1;
+      color: rgba(93, 33, 182, 0.35);
+      font-size: 12px;
+      letter-spacing: 0.9px;
+    }
+
     .card {
       border: 1px solid var(--line);
       border-radius: var(--radius);
@@ -359,6 +414,15 @@
   </style>
 </head>
 <body>
+  <div class="campus-bg" aria-hidden="true">
+    <img class="campus-art campus-top" src="../989e301b-5b69-49cd-ab7f-c58d8e046aac (1).svg" alt="">
+    <img class="campus-art campus-mid" src="../04591c9c-f260-4c7d-a2ef-1740ab62fe83 (1).svg" alt="">
+    <img class="campus-art campus-bottom" src="../b7844486-faf7-486f-901f-8ec7ffb7980c (1).svg" alt="">
+    <img class="campus-art campus-side" src="../40958298-b788-4157-8ece-4ade4c787752 (1).svg" alt="">
+  </div>
+
+  <div class="campus-watermark">WUHAN UNIVERSITY · CAMPUS LINE ART</div>
+
   <div class="header">
     <h1>🔮 三年后的寄语</h1>
     <a class="back-btn" href="index.html">← 返回主页</a>
