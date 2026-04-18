@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>樱小宠 · 热爱打卡</title>
+  <style>
+    :root {
+      --bg: #fff9ef;
+      --bg-soft: #fff3dc;
+      --card: rgba(255, 255, 255, 0.86);
+      --line: rgba(210, 171, 109, 0.26);
+      --text: #4c3720;
+      --muted: #8d7251;
+      --accent: #d59a44;
+      --accent-strong: #bf7d24;
+      --good: #7cad63;
+      --rose: #e2a67d;
+      --shadow: 0 14px 30px rgba(180, 132, 67, 0.14);
+      --radius: 16px;
+      --heart-red: #e74c3c;
+      --heart-pink: #ff6b9d;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 460px at -10% -10%, rgba(255, 229, 176, 0.65), transparent 66%),
+        radial-gradient(700px 360px at 110% 110%, rgba(255, 220, 169, 0.35), transparent 60%),
+        linear-gradient(170deg, var(--bg), var(--bg-soft));
+    }
+
+    .header {
+      background: linear-gradient(135deg, var(--heart-pink), var(--heart-red));
+      color: white;
+      padding: 28px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 8px 24px rgba(231, 76, 60, 0.25);
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: 0.5px;
+    }
+
+    .back-btn {
+      background: rgba(255, 255, 255, 0.25);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      padding: 10px 20px;
+      border-radius: 11px;
+      cursor: pointer;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .back-btn:hover {
+      background: rgba(255, 255, 255, 0.38);
+      transform: translateY(-1px);
+    }
+
+    .wrap {
+      width: min(1180px, 93vw);
+      margin: 26px auto 42px;
+      display: grid;
+      gap: 16px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      padding: 22px;
+    }
+
+    .card h2 {
+      margin: 0 0 18px;
+      font-size: 20px;
+      color: var(--heart-red);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .streak-banner {
+      background: linear-gradient(135deg, rgba(231, 76, 60, 0.12), rgba(255, 107, 157, 0.08));
+      border: 1px solid rgba(231, 76, 60, 0.25);
+      border-radius: 16px;
+      padding: 28px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .streak-number {
+      font-size: 64px;
+      font-weight: 800;
+      color: var(--heart-red);
+      line-height: 1;
+      margin-bottom: 8px;
+      text-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);
+    }
+
+    .streak-label {
+      font-size: 16px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .streak-fire {
+      font-size: 40px;
+      margin-top: 8px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
+
+    .checkin-btn-container {
+      text-align: center;
+      margin: 24px 0;
+    }
+
+    .checkin-btn {
+      background: linear-gradient(135deg, var(--heart-pink), var(--heart-red));
+      color: white;
+      border: none;
+      padding: 20px 60px;
+      border-radius: 999px;
+      font-size: 22px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 12px 32px rgba(231, 76, 60, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .checkin-btn:hover:not(:disabled) {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 16px 40px rgba(231, 76, 60, 0.45);
+    }
+
+    .checkin-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .checkin-btn::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+      transform: scale(0);
+      transition: transform 0.6s ease;
+    }
+
+    .checkin-btn.clicked::after {
+      transform: scale(1);
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-top: 16px;
+    }
+
+    .calendar-header {
+      text-align: center;
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--muted);
+      padding: 8px 0;
+    }
+
+    .calendar-day {
+      aspect-ratio: 1;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .calendar-day.empty {
+      background: transparent;
+    }
+
+    .calendar-day.normal {
+      background: rgba(213, 154, 68, 0.08);
+      color: var(--muted);
+    }
+
+    .calendar-day.checked {
+      background: linear-gradient(145deg, var(--heart-pink), var(--heart-red));
+      color: white;
+      box-shadow: 0 4px 12px rgba(231, 76, 60, 0.25);
+      animation: popIn 0.3s ease;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0); }
+      70% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    .calendar-day.today {
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 0 2px rgba(213, 154, 68, 0.15);
+    }
+
+    .passion-form {
+      background: linear-gradient(145deg, rgba(255, 240, 245, 0.92), rgba(255, 228, 235, 0.85));
+      border: 1px solid rgba(231, 76, 60, 0.2);
+      border-radius: 14px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--heart-red);
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid rgba(231, 76, 60, 0.25);
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: inherit;
+      background: rgba(255, 255, 255, 0.9);
+      transition: all 0.2s ease;
+      color: var(--text);
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--heart-red);
+      box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.12);
+    }
+
+    .form-group textarea {
+      min-height: 80px;
+      resize: vertical;
+      line-height: 1.55;
+    }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .stat-box {
+      background: linear-gradient(145deg, rgba(255, 240, 245, 0.85), rgba(255, 228, 235, 0.75));
+      border: 1px solid rgba(231, 76, 60, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat-box .value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--heart-red);
+    }
+
+    .stat-box .label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .history-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 400px;
+      overflow-y: auto;
+      display: grid;
+      gap: 10px;
+    }
+
+    .history-item {
+      border: 1px solid rgba(231, 76, 60, 0.18);
+      border-radius: 12px;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(255, 245, 247, 0.82));
+      padding: 14px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      transition: all 0.2s ease;
+    }
+
+    .history-item:hover {
+      border-color: rgba(231, 76, 60, 0.35);
+      transform: translateX(4px);
+    }
+
+    .history-icon {
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+
+    .history-content {
+      flex: 1;
+    }
+
+    .history-passion {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--heart-red);
+      margin-bottom: 4px;
+    }
+
+    .history-time {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .history-note {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--muted);
+    }
+
+    .empty-state .icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.6;
+    }
+
+    .confetti {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    @media (max-width: 980px) {
+      .header h1 { font-size: 22px; }
+      .streak-number { font-size: 48px; }
+      .checkin-btn { padding: 16px 40px; font-size: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>💝 热爱打卡</h1>
+    <a class="back-btn" href="index.html">← 返回主页</a>
+  </div>
+
+  <main class="wrap">
+    <section class="card">
+      <h2>🔥 坚持热爱，见证成长</h2>
+      <div class="streak-banner">
+        <div class="streak-number" id="streakNumber">0</div>
+        <div class="streak-label">连续热爱打卡天数</div>
+        <div class="streak-fire" id="streakFire">💪</div>
+      </div>
+
+      <div class="checkin-btn-container">
+        <button class="checkin-btn" id="checkinBtn" onclick="doCheckin()">
+          ❤️ 今日打卡 (+15 经验)
+        </button>
+      </div>
+
+      <div class="passion-form" id="passionForm" style="display:none;">
+        <h3 style="margin:0 0 14px;color:var(--heart-red);font-size:17px;">📝 记录今天的热爱</h3>
+        <div class="form-group">
+          <label for="passionName">今天坚持的热爱</label>
+          <input type="text" id="passionName" placeholder="例如：阅读、跑步、编程、绘画...">
+        </div>
+        <div class="form-group">
+          <label for="duration">投入时长</label>
+          <select id="duration">
+            <option value="15min">15分钟以内</option>
+            <option value="30min" selected>15-30分钟</option>
+            <option value="1hour">30分钟-1小时</option>
+            <option value="2hour+">1小时以上</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="note">今日感悟/复盘（可选）</label>
+          <textarea id="note" placeholder="今天的收获是什么？有什么想对自己说的？"></textarea>
+        </div>
+        <button type="button" class="checkin-btn" style="padding:12px 36px;font-size:16px;" onclick="submitCheckin()">
+          ✓ 确认打卡
+        </button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>📅 本月打卡日历</h2>
+      <div class="calendar-grid" id="calendarGrid"></div>
+    </section>
+
+    <section class="card">
+      <h2>📊 打卡统计</h2>
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="value" id="totalCheckins">0</div>
+          <div class="label">总打卡次数</div>
+        </div>
+        <div class="stat-box">
+          <div class="value" id="totalExp">0</div>
+          <div class="label">累计经验值</div>
+        </div>
+        <div class="stat-box">
+          <div class="value" id="maxStreak">0</div>
+          <div class="label">最长连续天数</div>
+        </div>
+        <div class="stat-box">
+          <div class="value" id="thisMonthCount">0</div>
+          <div class="label">本月打卡数</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>📜 打卡历史</h2>
+      <ul class="history-list" id="historyList"></ul>
+    </section>
+  </main>
+
+  <canvas class="confetti" id="confetti"></canvas>
+
+  <script>
+    const storeKey = "desk_pet_web_demo_state";
+    const checkinStoreKey = "desk_pet_checkin_records";
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(storeKey);
+        if (!raw) return { exp: 0, streak: 0, cornerCount: 0, passionCount: 0, futureCount: 0, logs: [] };
+        return JSON.parse(raw);
+      } catch (_) {
+        return { exp: 0, streak: 0, cornerCount: 0, passionCount: 0, futureCount: 0, logs: [] };
+      }
+    }
+
+    function saveState(state) {
+      localStorage.setItem(storeKey, JSON.stringify(state));
+    }
+
+    function loadCheckins() {
+      try {
+        const raw = localStorage.getItem(checkinStoreKey);
+        if (!raw) return [];
+        return JSON.parse(raw);
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function saveCheckins(checkins) {
+      localStorage.setItem(checkinStoreKey, JSON.stringify(checkins));
+    }
+
+    function getTodayStr() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    function alreadyCheckedToday() {
+      const checkins = loadCheckins();
+      const today = getTodayStr();
+      return checkins.some(c => c.date === today);
+    }
+
+    function renderCalendar() {
+      const checkins = loadCheckins();
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+
+      const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+      weekdays.forEach(day => {
+        const header = document.createElement('div');
+        header.className = 'calendar-header';
+        header.textContent = day;
+        grid.appendChild(header);
+      });
+
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const firstDay = new Date(year, month, 1).getDay();
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      const today = getTodayStr();
+
+      for (let i = 0; i < firstDay; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'calendar-day empty';
+        grid.appendChild(empty);
+      }
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const isChecked = checkins.some(c => c.date === dateStr);
+        const isToday = dateStr === today;
+
+        const dayEl = document.createElement('div');
+        dayEl.className = `calendar-day ${isChecked ? 'checked' : 'normal'}${isToday ? ' today' : ''}`;
+        dayEl.textContent = d;
+        grid.appendChild(dayEl);
+      }
+    }
+
+    function renderStats() {
+      const checkins = loadCheckins();
+      const state = loadState();
+
+      document.getElementById('totalCheckins').textContent = checkins.length;
+      document.getElementById('totalExp').textContent = checkins.length * 15;
+
+      let maxStreak = 0;
+      let currentStreak = 0;
+      const sortedDates = [...new Set(checkins.map(c => c.date))].sort();
+
+      if (sortedDates.length > 0) {
+        currentStreak = 1;
+        maxStreak = 1;
+        for (let i = 1; i < sortedDates.length; i++) {
+          const prev = new Date(sortedDates[i - 1]);
+          const curr = new Date(sortedDates[i]);
+          const diffDays = Math.round((curr - prev) / (1000 * 60 * 60 * 24));
+
+          if (diffDays === 1) {
+            currentStreak++;
+            maxStreak = Math.max(maxStreak, currentStreak);
+          } else {
+            currentStreak = 1;
+          }
+        }
+
+        const today = new Date(getTodayStr());
+        const lastCheckin = new Date(sortedDates[sortedDates.length - 1]);
+        const diffFromLast = Math.round((today - lastCheckin) / (1000 * 60 * 60 * 24));
+        if (diffFromLast > 1) currentStreak = 0;
+      }
+
+      document.getElementById('streakNumber').textContent = currentStreak;
+      document.getElementById('maxStreak').textContent = maxStreak;
+
+      const now = new Date();
+      const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const thisMonthCount = checkins.filter(c => c.date.startsWith(thisMonth)).length;
+      document.getElementById('thisMonthCount').textContent = thisMonthCount;
+
+      if (currentStreak >= 7) {
+        document.getElementById('streakFire').textContent = '🔥🔥🔥';
+      } else if (currentStreak >= 3) {
+        document.getElementById('streakFire').textContent = '🔥🔥';
+      } else if (currentStreak > 0) {
+        document.getElementById('streakFire').textContent = '🔥';
+      } else {
+        document.getElementById('streakFire').textContent = '💪';
+      }
+    }
+
+    function renderHistory() {
+      const checkins = loadCheckins();
+      const list = document.getElementById('historyList');
+      list.innerHTML = '';
+
+      if (checkins.length === 0) {
+        list.innerHTML = `
+          <li class="empty-state">
+            <div class="icon">💝</div>
+            <p>还没有打卡记录</p>
+            <p style="font-size:13px;margin-top:8px;">开始你的第一次热爱打卡吧！</p>
+          </li>
+        `;
+        return;
+      }
+
+      checkins.slice().reverse().forEach(c => {
+        const li = document.createElement('li');
+        li.className = 'history-item';
+        li.innerHTML = `
+          <span class="history-icon">${c.duration === '2hour+' ? '⭐' : c.duration === '1hour' ? '💪' : c.duration === '30min' ? '👍' : '✨'}</span>
+          <div class="history-content">
+            <div class="history-passion">${c.passion}</div>
+            <div class="history-time">🕐 ${c.time} · ${c.durationLabel || c.duration}</div>
+            ${c.note ? `<div class="history-note">${c.note}</div>` : ''}
+          </div>
+        `;
+        list.appendChild(li);
+      });
+    }
+
+    function doCheckin() {
+      if (alreadyCheckedToday()) {
+        alert('今天已经打过卡啦！明天再来吧 💪');
+        return;
+      }
+      document.getElementById('passionForm').style.display = 'block';
+      document.getElementById('checkinBtn').style.display = 'none';
+    }
+
+    function submitCheckin() {
+      const passion = document.getElementById('passionName').value.trim();
+      if (!passion) {
+        alert('请填写你今天坚持的热爱！');
+        return;
+      }
+
+      const duration = document.getElementById('duration').value;
+      const note = document.getElementById('note').value.trim();
+      const durationLabels = {
+        '15min': '15分钟以内',
+        '30min': '15-30分钟',
+        '1hour': '30分钟-1小时',
+        '2hour+': '1小时以上'
+      };
+
+      const checkin = {
+        date: getTodayStr(),
+        time: new Date().toLocaleString('zh-CN', { hour12: false }),
+        passion,
+        duration,
+        durationLabel: durationLabels[duration],
+        note
+      };
+
+      const checkins = loadCheckins();
+      checkins.push(checkin);
+      saveCheckins(checkins);
+
+      const state = loadState();
+      state.exp += 15;
+      state.streak += 1;
+      state.passionCount += 1;
+      const stamp = new Date().toLocaleString("zh-CN", { hour12: false });
+      state.logs.push(`[${stamp}] 完成热爱打卡「${passion}」，经验 +15`);
+      state.logs = state.logs.slice(-26);
+      saveState(state);
+
+      document.getElementById('passionForm').style.display = 'none';
+      document.getElementById('checkinBtn').style.display = 'inline-block';
+      document.getElementById('checkinBtn').disabled = true;
+      document.getElementById('checkinBtn').textContent = '✓ 已打卡';
+
+      document.getElementById('passionForm').reset();
+
+      renderCalendar();
+      renderStats();
+      renderHistory();
+
+      fireConfetti();
+    }
+
+    function fireConfetti() {
+      const canvas = document.getElementById('confetti');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      const particles = [];
+      const colors = ['#e74c3c', '#ff6b9d', '#f39c12', '#9b59b6', '#3498db'];
+
+      for (let i = 0; i < 80; i++) {
+        particles.push({
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          vx: (Math.random() - 0.5) * 15,
+          vy: (Math.random() - 0.5) * 15 - 5,
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 10
+        });
+      }
+
+      let frame = 0;
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.3;
+          p.rotation += p.rotSpeed;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rotation * Math.PI / 180);
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+          ctx.restore();
+        });
+
+        frame++;
+        if (frame < 90) {
+          requestAnimationFrame(animate);
+        } else {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+      }
+      animate();
+    }
+
+    function init() {
+      if (alreadyCheckedToday()) {
+        document.getElementById('checkinBtn').disabled = true;
+        document.getElementById('checkinBtn').textContent = '✓ 今天已打卡';
+      }
+
+      renderCalendar();
+      renderStats();
+      renderHistory();
+    }
+
+    init();
+  </script>
+</body>
+</html>

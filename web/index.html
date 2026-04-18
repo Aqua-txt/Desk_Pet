@@ -375,6 +375,102 @@
       .title {
         font-size: 27px;
       }
+      .nav-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .nav-card {
+      border-radius: var(--radius);
+      padding: 20px 16px;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .nav-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .nav-card:hover::before {
+      opacity: 1;
+    }
+
+    .nav-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 36px rgba(180, 132, 67, 0.2);
+    }
+
+    .nav-icon {
+      font-size: 36px;
+      z-index: 1;
+    }
+
+    .nav-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      z-index: 1;
+      text-align: center;
+    }
+
+    .nav-desc {
+      font-size: 11px;
+      color: var(--muted);
+      z-index: 1;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .nav-growth {
+      background: linear-gradient(145deg, rgba(220, 161, 79, 0.08), rgba(192, 127, 42, 0.04));
+      border: 1px solid rgba(213, 154, 68, 0.25);
+    }
+
+    .nav-growth::before {
+      background: linear-gradient(135deg, rgba(220, 161, 79, 0.15), rgba(192, 127, 42, 0.08));
+    }
+
+    .nav-corner {
+      background: linear-gradient(145deg, rgba(124, 173, 99, 0.08), rgba(90, 138, 63, 0.04));
+      border: 1px solid rgba(124, 173, 99, 0.25);
+    }
+
+    .nav-corner::before {
+      background: linear-gradient(135deg, rgba(124, 173, 99, 0.15), rgba(90, 138, 63, 0.08));
+    }
+
+    .nav-passion {
+      background: linear-gradient(145deg, rgba(231, 76, 60, 0.06), rgba(255, 107, 157, 0.03));
+      border: 1px solid rgba(231, 76, 60, 0.22);
+    }
+
+    .nav-passion::before {
+      background: linear-gradient(135deg, rgba(231, 76, 60, 0.12), rgba(255, 107, 157, 0.06));
+    }
+
+    .nav-future {
+      background: linear-gradient(145deg, rgba(139, 92, 246, 0.07), rgba(109, 40, 217, 0.03));
+      border: 1px solid rgba(139, 92, 246, 0.22);
+    }
+
+    .nav-future::before {
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.14), rgba(109, 40, 217, 0.07));
     }
   </style>
 </head>
@@ -402,6 +498,29 @@
         <span>可交互路演看板</span>
         <span>未来寄语生成</span>
       </div>
+    </section>
+
+    <section class="nav-grid">
+      <a href="growth-panel.html" class="nav-card nav-growth">
+        <span class="nav-icon">📊</span>
+        <span class="nav-title">查看成长面板</span>
+        <span class="nav-desc">数据可视化 · 等级进度 · 成就徽章</span>
+      </a>
+      <a href="record-corner.html" class="nav-card nav-corner">
+        <span class="nav-icon">📍</span>
+        <span class="nav-title">记录被忽视角落</span>
+        <span class="nav-desc">发现武大隐秘角落 · +10 经验值</span>
+      </a>
+      <a href="passion-checkin.html" class="nav-card nav-passion">
+        <span class="nav-icon">💝</span>
+        <span class="nav-title">热爱打卡</span>
+        <span class="nav-desc">坚持你的热爱 · +15 经验值起</span>
+      </a>
+      <a href="future-message.html" class="nav-card nav-future">
+        <span class="nav-icon">🔮</span>
+        <span class="nav-title">生成三年后寄语</span>
+        <span class="nav-desc">来自未来的声音 · 收藏与分享</span>
+      </a>
     </section>
 
     <section class="kpi-grid">

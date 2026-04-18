@@ -1,7 +1,6 @@
 import sys
 import random
 from datetime import date, datetime
-import os
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
@@ -15,9 +14,6 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QAction, QColor, QDesktopServices, QPixmap
 from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtGui import QAction, QDesktopServices, QPixmap
-from PyQt6.QtCore import Qt, QUrl, QUrlQuery
-from services.doubao_summary_service import load_dotenv_file
 from services import DouyinSummaryPipeline
 from storage import DouyinLinkStore, PetGrowthStore, SummaryStore
 from ui import SavedLinksDialog, SummaryDialog
@@ -34,8 +30,6 @@ class DesktopPet(QMainWindow):
         {"level": 4, "title": "角落守护者", "min_exp": 150, "size": 146, "color": "#FFD27D"},
         {"level": 5, "title": "未来引路人", "min_exp": 240, "size": 156, "color": "#FF9CB9"},
     ]
-    PET_SIZE = 128
-    MAP_HTML_PATH = Path("Map") / "map.html"
 
     def __init__(self):
         super().__init__()
@@ -138,7 +132,6 @@ class DesktopPet(QMainWindow):
         add_link_action = QAction("输入抖音链接", self)
         summarize_action = QAction("生成视频总结", self)
         view_links_action = QAction("查看已保存链接", self)
-        map_action = QAction("珞珈风貌", self)
         exit_action = QAction("退出", self)
 
         growth_panel_action.triggered.connect(self.show_growth_panel)
@@ -149,7 +142,6 @@ class DesktopPet(QMainWindow):
         add_link_action.triggered.connect(self.add_douyin_link)
         summarize_action.triggered.connect(self.generate_video_summary)
         view_links_action.triggered.connect(self.show_saved_links)
-        map_action.triggered.connect(self.open_luojia_map)
         exit_action.triggered.connect(self.close)
 
         menu.addAction(growth_panel_action)
@@ -161,7 +153,6 @@ class DesktopPet(QMainWindow):
         menu.addAction(add_link_action)
         menu.addAction(summarize_action)
         menu.addAction(view_links_action)
-        menu.addAction(map_action)
         menu.addSeparator()
         menu.addAction(exit_action)
         menu.exec(global_pos)
@@ -430,34 +421,6 @@ class DesktopPet(QMainWindow):
         ok = QDesktopServices.openUrl(target_url)
         if not ok:
             QMessageBox.warning(self, "打开失败", f"无法打开网页：{target_url.toString()}")
-
-    def open_luojia_map(self):
-        # 每次打开前重载 .env，确保运行中修改配置也能生效
-        load_dotenv_file()
-
-        map_file = self.MAP_HTML_PATH.resolve()
-        if not map_file.exists():
-            QMessageBox.warning(self, "打开失败", f"未找到地图文件：{self.MAP_HTML_PATH}")
-            return
-
-        amap_key = os.getenv("AMAP_WEB_API_KEY", "").strip()
-        if not amap_key:
-            QMessageBox.warning(
-                self,
-                "缺少配置",
-                "未检测到 AMAP_WEB_API_KEY，请先在 .env 中配置高德地图 Web API Key。",
-            )
-            return
-
-        url = QUrl.fromLocalFile(str(map_file))
-        query = QUrlQuery()
-        query.addQueryItem("key", amap_key)
-        url.setQuery(query)
-        # 个别浏览器在 file:// 下可能忽略 query，额外提供 hash 兜底
-        url.setFragment(f"key={amap_key}")
-
-        if not QDesktopServices.openUrl(url):
-            QMessageBox.warning(self, "打开失败", "无法打开地图页面。")
 
 # 主程序
 if __name__ == "__main__":
