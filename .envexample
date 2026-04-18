@@ -8,3 +8,6 @@ DOUBAO_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
 # 推荐填写火山 Ark 控制台中的 Endpoint ID（通常是 ep-...）
 # 如果你的账号支持直填模型名，也可填写对应模型名
 DOUBAO_MODEL=your_endpoint_id_or_model_name
+
+# AMap JavaScript API
+AMAP_WEB_API_KEY=your_amap_web_api_key_here

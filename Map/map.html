@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>珞珈风貌 - 武汉大学地图</title>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: "Microsoft YaHei", sans-serif;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    .tip {
+      position: fixed;
+      left: 12px;
+      top: 12px;
+      z-index: 9999;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(13, 17, 23, 0.85);
+      border: 1px solid rgba(56, 139, 253, 0.45);
+      line-height: 1.5;
+      font-size: 14px;
+      max-width: 420px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="tip" class="tip" style="display:none;"></div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams((window.location.hash || "").replace(/^#/, ""));
+    const amapKey = params.get("key") || hashParams.get("key") || "";
+    const tip = document.getElementById("tip");
+
+    function showTip(message) {
+      tip.style.display = "block";
+      tip.textContent = message;
+    }
+
+    function loadAmapScript(key) {
+      return new Promise((resolve, reject) => {
+        if (!key) {
+          reject(new Error("缺少高德地图 Key（AMAP_WEB_API_KEY）。"));
+          return;
+        }
+        const script = document.createElement("script");
+        script.src = `https://webapi.amap.com/maps?v=2.0&key=${encodeURIComponent(key)}`;
+        script.async = true;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error("高德地图脚本加载失败，请检查 Key 或网络。"));
+        document.head.appendChild(script);
+      });
+    }
+
+    function initMap() {
+      const wuhanUniversity = [114.365457, 30.543093];
+      const map = new AMap.Map("map", {
+        zoom: 16,
+        center: wuhanUniversity,
+        viewMode: "3D",
+        mapStyle: "amap://styles/normal",
+      });
+
+      const marker = new AMap.Marker({
+        position: wuhanUniversity,
+        title: "武汉大学",
+      });
+      map.add(marker);
+
+      const circle = new AMap.Circle({
+        center: wuhanUniversity,
+        radius: 650,
+        strokeColor: "#1f6feb",
+        strokeWeight: 2,
+        strokeOpacity: 0.75,
+        fillColor: "#58a6ff",
+        fillOpacity: 0.15,
+      });
+      map.add(circle);
+
+      const info = new AMap.InfoWindow({
+        content: "<b>武汉大学</b><br/>珞珈山下，东湖之滨",
+        offset: new AMap.Pixel(0, -26),
+      });
+      info.open(map, wuhanUniversity);
+    }
+
+    loadAmapScript(amapKey)
+      .then(initMap)
+      .catch((error) => {
+        showTip(error.message);
+      });
+  </script>
+</body>
+</html>
