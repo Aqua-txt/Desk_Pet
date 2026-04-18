@@ -7,11 +7,12 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMessageBox,
-    QPushButton,
     QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
+from ui.summary_dialog import SummaryDialog
 from ui.theme import AnimatedButton
 
 
@@ -30,12 +31,12 @@ class SavedLinksDialog(QDialog):
                 background: transparent;
             }
             QWidget#Card {
-                background-color: rgba(14, 18, 32, 214);
-                border: 1px solid rgba(125, 149, 235, 135);
-                border-radius: 16px;
+                background-color: rgba(255, 241, 250, 238);
+                border: 1px solid rgba(255, 182, 222, 180);
+                border-radius: 18px;
             }
             QLabel {
-                color: #EAF0FF;
+                color: #6F4A67;
                 font-size: 14px;
             }
             QScrollArea {
@@ -44,6 +45,11 @@ class SavedLinksDialog(QDialog):
             }
             QScrollArea > QWidget > QWidget {
                 background: transparent;
+            }
+            QWidget#RowCard {
+                background: rgba(255, 255, 255, 210);
+                border: 1px solid rgba(255, 196, 229, 170);
+                border-radius: 12px;
             }
             """
         )
@@ -67,6 +73,7 @@ class SavedLinksDialog(QDialog):
 
         self.scroll_area = QScrollArea(self)
         self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.main_layout.addWidget(self.scroll_area)
 
         self.container = QWidget()
@@ -94,8 +101,9 @@ class SavedLinksDialog(QDialog):
 
     def _build_row(self, record: dict) -> QWidget:
         row = QWidget(self)
+        row.setObjectName("RowCard")
         row_layout = QHBoxLayout(row)
-        row_layout.setContentsMargins(0, 0, 0, 0)
+        row_layout.setContentsMargins(8, 8, 8, 8)
         row_layout.setSpacing(8)
 
         record_index = record["index"]
@@ -103,26 +111,30 @@ class SavedLinksDialog(QDialog):
         display_text = record.get("display_text", url)
         learned = bool(record.get("learned", False))
         created_at = record.get("created_at", "")
-        button_text = display_text if len(display_text) <= 72 else f"{display_text[:72]}..."
+        button_text = display_text if len(display_text) <= 24 else f"{display_text[:24]}..."
         if created_at:
-            button_text = f"{button_text}  ({created_at})"
+            short_date = created_at[:10]
+            button_text = f"{button_text}  ({short_date})"
 
         open_button = AnimatedButton(button_text, role="soft", parent=row)
         open_button.setToolTip(f"{display_text}\n{url}")
+        open_button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        open_button.setMinimumWidth(220)
+        open_button.setMaximumWidth(340)
         open_button.clicked.connect(partial(self.open_link, url))
 
         summary_button = AnimatedButton("总结视频内容", role="soft", parent=row)
-        summary_button.setFixedWidth(120)
+        summary_button.setFixedWidth(112)
         summary_button.clicked.connect(partial(self.show_summary, url))
 
         learn_button_text = "已学习" if learned else "未学习"
         learn_button_role = "soft" if learned else "primary"
         learn_button = AnimatedButton(learn_button_text, role=learn_button_role, parent=row)
-        learn_button.setFixedWidth(88)
+        learn_button.setFixedWidth(82)
         learn_button.clicked.connect(partial(self.toggle_learned, record_index, learned))
 
         delete_button = AnimatedButton("删除", role="danger", parent=row)
-        delete_button.setFixedWidth(72)
+        delete_button.setFixedWidth(66)
         delete_button.setStyleSheet(
             delete_button.styleSheet()
             + "QPushButton {text-align: center; padding: 8px 0px;}"
@@ -180,9 +192,13 @@ class SavedLinksDialog(QDialog):
             return
 
         summary_time = record.get("updated_at") or record.get("created_at", "未知时间")
-        display_text = (
-            f"链接：{normalized}\n"
-            f"更新时间：{summary_time}\n\n"
-            f"{summary_content}"
+        dialog = SummaryDialog(
+            "视频总结",
+            summary_content,
+            self,
+            meta_lines=[
+                f"链接：{normalized}",
+                f"更新时间：{summary_time}",
+            ],
         )
-        QMessageBox.information(self, "视频总结", display_text)
+        dialog.exec()

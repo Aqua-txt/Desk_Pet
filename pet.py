@@ -1,4 +1,6 @@
 import sys
+import random
+from datetime import date, datetime
 import re
 import json
 import random
@@ -16,9 +18,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from PyQt6.QtGui import QAction, QDesktopServices, QPixmap
-from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtGui import QAction, QColor, QDesktopServices, QPixmap, QScreen
+from PyQt6.QtGui import QAction, QDesktopServices, QPixmap, QScreen
+from PyQt6.QtCore import Qt, QTimer, QUrl
 from services import DouyinSummaryPipeline
 from storage import DouyinLinkStore, PetGrowthStore, SummaryStore
 from ui import SavedLinksDialog
@@ -42,6 +43,8 @@ class DesktopPet(QMainWindow):
         super().__init__()
         self.drag_pos = None
         self.press_pos = None
+        self.bubble_enabled = True
+        self.unlearned_video_count = 0
         self.link_store = DouyinLinkStore(Path("data") / "douyin_links.json")
         self.summary_store = SummaryStore(Path("data") / "video_summaries.json")
         self.growth_store = PetGrowthStore(Path("data") / "pet_growth.json")
@@ -59,8 +62,6 @@ class DesktopPet(QMainWindow):
         self.pet_frames = self.load_pet_frames()
         self.current_pet_index = 0
         self.pet_pixmap = self.load_scaled_pet_image(self.current_level_config()["size"])
-        self.init_window()
-        self.move_to_bottom_right()
 
         self.label = QLabel(self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -91,6 +92,23 @@ class DesktopPet(QMainWindow):
         self.level_label.setStyleSheet(
             "color: #EAF0FF; font-size: 12px; font-weight: bold; background: transparent;"
         )
+        self.reminder_bubble = QLabel(self)
+        self.reminder_bubble.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+        self.reminder_bubble.setWordWrap(True)
+        self.reminder_bubble.setStyleSheet(
+            """
+            QLabel {
+                color: #6F4A67;
+                background: rgba(255, 243, 250, 236);
+                border: 1px solid rgba(255, 183, 222, 210);
+                border-radius: 12px;
+                padding: 6px 10px;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            """
+        )
+        self.reminder_bubble.hide()
 
         self.panel = QWidget(self)
         self.panel.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
@@ -105,6 +123,8 @@ class DesktopPet(QMainWindow):
         self.init_window()
         self.refresh_pet_appearance()
         self.refresh_learning_ui()
+        self.move_to_bottom_right()
+        self.setup_bubble_timer()
 
     def init_window(self):
         self.setWindowTitle("樱小宠")
@@ -165,22 +185,68 @@ class DesktopPet(QMainWindow):
         self.label.setFixedSize(self.pet_pixmap.size())
         self.update_window_size()
         self.setWindowTitle(f"樱小宠 Lv{level['level']} · {level['title']}")
-        self.setToolTip(
-            f"等级: Lv{level['level']} {level['title']}\n"
-            f"经验值: {self.growth_state['exp']}\n"
-            f"连续打卡: {self.growth_state['streak_days']} 天"
-        )
+        self.refresh_tooltip()
 
     def update_window_size(self):
         width = max(self.pet_pixmap.width(), 180)
         height = self.pet_pixmap.height() + 8 + 4 + 18
         self.setFixedSize(width, height)
+        self.update_bubble_position()
 
     def refresh_learning_ui(self):
         stats = self.get_learning_stats()
         self.progress_bar.setMaximum(int(stats["progress_total"]))
         self.progress_bar.setValue(int(stats["level_progress"]))
         self.level_label.setText(f"Lv.{stats['level']}  经验 {stats['exp']}")
+        links = self.link_store.get_links()
+        self.unlearned_video_count = sum(1 for item in links if not bool(item.get("learned", False)))
+        if self.unlearned_video_count <= 0:
+            self.reminder_bubble.hide()
+        self.refresh_tooltip()
+
+    def refresh_tooltip(self):
+        stats = self.link_store.get_learning_stats()
+        learned_count = int(stats["learned_count"])
+        unlearned_count = int(self.unlearned_video_count)
+        self.setToolTip(
+            f"学习等级: Lv.{stats['level']}\n"
+            f"学习经验: {stats['exp']}\n"
+            f"已学习视频: {learned_count}\n"
+            f"未学习视频: {unlearned_count}"
+        )
+
+    def setup_bubble_timer(self):
+        self.bubble_timer = QTimer(self)
+        self.bubble_timer.setInterval(10_000)
+        self.bubble_timer.timeout.connect(self.show_learning_reminder_bubble)
+        self.bubble_timer.start()
+
+        self.bubble_hide_timer = QTimer(self)
+        self.bubble_hide_timer.setSingleShot(True)
+        self.bubble_hide_timer.timeout.connect(self.reminder_bubble.hide)
+
+    def update_bubble_position(self):
+        max_width = max(140, min(260, self.width() - 16))
+        self.reminder_bubble.setMaximumWidth(max_width)
+        self.reminder_bubble.adjustSize()
+        self.reminder_bubble.move(8, 8)
+
+    def show_learning_reminder_bubble(self):
+        if not self.bubble_enabled:
+            return
+        if self.unlearned_video_count <= 0:
+            return
+
+        self.reminder_bubble.setText(f"你还有{self.unlearned_video_count}个视频没有学习哦")
+        self.update_bubble_position()
+        self.reminder_bubble.show()
+        self.reminder_bubble.raise_()
+        self.bubble_hide_timer.start(2_000)
+
+    def toggle_bubble_hint(self):
+        self.bubble_enabled = not self.bubble_enabled
+        if not self.bubble_enabled:
+            self.reminder_bubble.hide()
 
     def get_passion_checkins(self) -> list[dict]:
         if not self.passion_checkins_path.exists():
@@ -283,12 +349,15 @@ class DesktopPet(QMainWindow):
         open_web_action = QAction("打开成长主页", self)
         add_link_action = QAction("输入抖音链接", self)
         view_links_action = QAction("查看已保存链接", self)
+        bubble_action_text = "关闭气泡提示" if self.bubble_enabled else "打开气泡提示"
+        bubble_toggle_action = QAction(bubble_action_text, self)
         exit_action = QAction("退出", self)
 
         passion_action.triggered.connect(lambda: self.open_web_page(self.WEB_PASSION_CHECKIN))
         open_web_action.triggered.connect(self.open_growth_web_page)
         add_link_action.triggered.connect(self.add_douyin_link)
         view_links_action.triggered.connect(self.show_saved_links)
+        bubble_toggle_action.triggered.connect(self.toggle_bubble_hint)
         exit_action.triggered.connect(self.close)
 
         menu.addAction(passion_action)
@@ -296,6 +365,7 @@ class DesktopPet(QMainWindow):
         menu.addSeparator()
         menu.addAction(add_link_action)
         menu.addAction(view_links_action)
+        menu.addAction(bubble_toggle_action)
         menu.addSeparator()
         menu.addAction(exit_action)
         menu.exec(global_pos)
