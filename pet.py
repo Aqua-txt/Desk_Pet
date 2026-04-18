@@ -265,9 +265,7 @@ class DesktopPet(QMainWindow):
             self,
             on_learning_status_changed=self.refresh_learning_ui,
         )
-            "记录完成",
-            self.build_growth_message("已记录你的角落观察，成长值 +10。", result),
-        )
+        dialog.exec()
 
     def add_passion_task(self):
         task_name, ok = QInputDialog.getText(self, "热爱打卡", "今天完成了什么热爱行动：")
