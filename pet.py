@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtGui import QAction, QDesktopServices, QPixmap
 from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtGui import QAction, QColor, QDesktopServices, QPixmap, QScreen
 from services import DouyinSummaryPipeline
 from storage import DouyinLinkStore, PetGrowthStore, SummaryStore
 from ui import SavedLinksDialog
@@ -46,6 +47,9 @@ class DesktopPet(QMainWindow):
         self.pet_frames = self.load_pet_frames()
         self.current_pet_index = 0
         self.pet_pixmap = self.load_scaled_pet_image(self.current_level_config()["size"])
+        self.init_window()
+        self.move_to_bottom_right()
+
         self.label = QLabel(self)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
@@ -119,6 +123,19 @@ class DesktopPet(QMainWindow):
 
         frames.sort(key=lambda item: item[0])
         return [pixmap for _, pixmap in frames]
+    def move_to_bottom_right(self, margin: int = 40):
+        screen: QScreen = self.screen()
+        screen_geo = screen.availableGeometry()
+        pet_geo = self.geometry()
+        x = screen_geo.right() - pet_geo.width() - margin
+        y = screen_geo.bottom() - pet_geo.height() - margin
+        self.move(x, y)
+
+    def load_base_pet_image(self) -> QPixmap:
+        pixmap = QPixmap(str(self.PET_IMAGE_PATH))
+        if pixmap.isNull():
+            raise FileNotFoundError(f"未找到桌宠图片: {self.PET_IMAGE_PATH}")
+        return pixmap
 
     def load_scaled_pet_image(self, size: int) -> QPixmap:
         base_pixmap = self.pet_frames[self.current_pet_index]
@@ -248,6 +265,178 @@ class DesktopPet(QMainWindow):
             self,
             on_learning_status_changed=self.refresh_learning_ui,
         )
+            "记录完成",
+            self.build_growth_message("已记录你的角落观察，成长值 +10。", result),
+        )
+
+    def add_passion_task(self):
+        task_name, ok = QInputDialog.getText(self, "热爱打卡", "今天完成了什么热爱行动：")
+        if not ok:
+            return
+        task_name = task_name.strip()
+        if not task_name:
+            QMessageBox.warning(self, "输入无效", "热爱行动不能为空。")
+            return
+
+        minutes, ok = QInputDialog.getInt(
+            self,
+            "投入时长",
+            "本次投入分钟数：",
+            value=30,
+            min=10,
+            max=600,
+            step=10,
+        )
+        if not ok:
+            return
+
+        note, ok = QInputDialog.getText(self, "行动备注", "本次收获（可选）：")
+        if not ok:
+            return
+
+        dynamic_bonus = min((minutes // 30) * 2, 10)
+        exp_gain = 15 + dynamic_bonus
+        self.growth_state["passion_tasks"].append(
+            {
+                "task_name": task_name,
+                "minutes": minutes,
+                "note": note.strip(),
+                "created_at": datetime.now().isoformat(timespec="seconds"),
+            }
+        )
+        self.growth_state["passion_tasks"] = self.growth_state["passion_tasks"][-120:]
+        result = self.apply_growth(exp_gain=exp_gain)
+        QMessageBox.information(
+            self,
+            "打卡成功",
+            self.build_growth_message(f"热爱行动已打卡，成长值 +{exp_gain}。", result),
+        )
+
+    def apply_growth(self, exp_gain: int) -> dict:
+        level_before = self.current_level_config()["level"]
+        penalty_applied, streak_bonus = self.update_streak_and_penalty()
+        self.growth_state["exp"] = max(0, int(self.growth_state["exp"]) + exp_gain + streak_bonus)
+        self.growth_store.save_state(self.growth_state)
+        self.refresh_pet_appearance()
+        self.move_to_bottom_right()
+
+        level_after = self.current_level_config()["level"]
+        return {
+            "penalty_applied": penalty_applied,
+            "streak_bonus": streak_bonus,
+            "leveled_up": level_after > level_before,
+            "level_after": level_after,
+        }
+
+    def update_streak_and_penalty(self) -> tuple[bool, int]:
+        today = date.today()
+        last_active = str(self.growth_state.get("last_active_date", "") or "").strip()
+        penalty_applied = False
+        streak_bonus = 0
+
+        if not last_active:
+            self.growth_state["streak_days"] = 1
+        else:
+            try:
+                last_day = date.fromisoformat(last_active)
+            except ValueError:
+                last_day = today
+
+            day_diff = (today - last_day).days
+            if day_diff <= 0:
+                pass
+            elif day_diff == 1:
+                self.growth_state["streak_days"] = int(self.growth_state["streak_days"]) + 1
+            else:
+                self.growth_state["exp"] = max(0, int(self.growth_state["exp"]) - 5)
+                self.growth_state["streak_days"] = 1
+                penalty_applied = True
+
+            if day_diff > 0 and int(self.growth_state["streak_days"]) % 3 == 0:
+                streak_bonus = 5
+
+        self.growth_state["last_active_date"] = today.isoformat()
+        return penalty_applied, streak_bonus
+
+    def build_growth_message(self, headline: str, result: dict) -> str:
+        lines = [headline]
+        if result["streak_bonus"] > 0:
+            lines.append(f"连续打卡奖励 +{result['streak_bonus']}。")
+        if result["penalty_applied"]:
+            lines.append("检测到长时间未互动，已触发 -5 衰减后重新起步。")
+        if result["leveled_up"]:
+            current = self.current_level_config()
+            lines.append(f"恭喜升级到 Lv{current['level']}：{current['title']}！")
+        lines.append(
+            f"当前状态：Lv{self.current_level_config()['level']}，经验值 {self.growth_state['exp']}，"
+            f"连续 {self.growth_state['streak_days']} 天。"
+        )
+        return "\n".join(lines)
+
+    def show_growth_panel(self):
+        current = self.current_level_config()
+        next_level = self.next_level_config()
+        corner_count = len(self.growth_state["corner_logs"])
+        passion_count = len(self.growth_state["passion_tasks"])
+        message_count = len(self.growth_state["future_messages"])
+        latest_corner = self.growth_state["corner_logs"][-1]["corner_name"] if corner_count else "暂无"
+        latest_passion = self.growth_state["passion_tasks"][-1]["task_name"] if passion_count else "暂无"
+
+        lines = [
+            f"当前等级：Lv{current['level']} · {current['title']}",
+            f"经验值：{self.growth_state['exp']}",
+            f"连续打卡：{self.growth_state['streak_days']} 天",
+        ]
+        if next_level:
+            remaining = max(0, int(next_level["min_exp"]) - int(self.growth_state["exp"]))
+            lines.append(f"距离 Lv{next_level['level']} 还差：{remaining} 经验值")
+        else:
+            lines.append("已达到最高等级，继续打卡可维持光芒状态。")
+
+        lines.extend(
+            [
+                "",
+                f"角落记录数：{corner_count}",
+                f"热爱打卡数：{passion_count}",
+                f"未来寄语数：{message_count}",
+                "",
+                f"最近角落：{latest_corner}",
+                f"最近热爱：{latest_passion}",
+            ]
+        )
+        dialog = SummaryDialog("樱小宠成长面板", "\n".join(lines), self)
+        dialog.exec()
+
+    def generate_future_message(self):
+        current = self.current_level_config()
+        latest_corner = self.growth_state["corner_logs"][-1]["corner_name"] if self.growth_state["corner_logs"] else "武大某个还没被点亮的角落"
+        latest_passion = self.growth_state["passion_tasks"][-1]["task_name"] if self.growth_state["passion_tasks"] else "你真正热爱的事情"
+        streak = int(self.growth_state["streak_days"])
+
+        templates = [
+            "三年后的你会记得今天在「{corner}」的观察，因为那是你把热爱「{passion}」变成长期行动的起点。",
+            "未来的你想对现在说：继续在「{corner}」发现问题并行动，你在「{passion}」上的坚持会成为核心竞争力。",
+            "如果把这份热爱坚持三年，你会在武汉大学留下自己的坐标：从「{corner}」出发，用「{passion}」影响更多人。",
+            "三年后的你正在感谢今天的你：没有忽视「{corner}」，也没有放弃「{passion}」。",
+        ]
+        tail = (
+            f"\n\n成长建议：保持连续打卡，当前已坚持 {streak} 天。"
+            if streak
+            else "\n\n成长建议：先从连续 3 天小目标开始。"
+        )
+        message = random.choice(templates).format(corner=latest_corner, passion=latest_passion) + tail
+
+        self.growth_state["future_messages"].append(
+            {
+                "content": message,
+                "level": current["level"],
+                "created_at": datetime.now().isoformat(timespec="seconds"),
+            }
+        )
+        self.growth_state["future_messages"] = self.growth_state["future_messages"][-50:]
+        self.growth_store.save_state(self.growth_state)
+
+        dialog = SummaryDialog("三年后的自己 · 寄语", message, self)
         dialog.exec()
 
     def open_web_page(self, page_path: Path):
