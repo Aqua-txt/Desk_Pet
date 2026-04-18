@@ -22,6 +22,10 @@ from ui import SavedLinksDialog, SummaryDialog
 class DesktopPet(QMainWindow):
     PET_IMAGE_PATH = Path("Animations") / "Images" / "ComfyUI_00094_.png"
     WEB_HOME_PAGE = Path("web") / "index.html"
+    WEB_GROWTH_PANEL = Path("web") / "growth-panel.html"
+    WEB_RECORD_CORNER = Path("web") / "record-corner.html"
+    WEB_PASSION_CHECKIN = Path("web") / "passion-checkin.html"
+    WEB_FUTURE_MESSAGE = Path("web") / "future-message.html"
     WEB_FALLBACK_URL = "https://www.wuhanuniversity.edu.cn/"
     LEVEL_CONFIGS = [
         {"level": 1, "title": "初来乍到", "min_exp": 0, "size": 118, "color": "#9FB3D9"},
@@ -134,10 +138,10 @@ class DesktopPet(QMainWindow):
         view_links_action = QAction("查看已保存链接", self)
         exit_action = QAction("退出", self)
 
-        growth_panel_action.triggered.connect(self.show_growth_panel)
-        corner_log_action.triggered.connect(self.add_corner_log)
-        passion_action.triggered.connect(self.add_passion_task)
-        future_action.triggered.connect(self.generate_future_message)
+        growth_panel_action.triggered.connect(lambda: self.open_web_page(self.WEB_GROWTH_PANEL))
+        corner_log_action.triggered.connect(lambda: self.open_web_page(self.WEB_RECORD_CORNER))
+        passion_action.triggered.connect(lambda: self.open_web_page(self.WEB_PASSION_CHECKIN))
+        future_action.triggered.connect(lambda: self.open_web_page(self.WEB_FUTURE_MESSAGE))
         open_web_action.triggered.connect(self.open_growth_web_page)
         add_link_action.triggered.connect(self.add_douyin_link)
         summarize_action.triggered.connect(self.generate_video_summary)
@@ -411,16 +415,16 @@ class DesktopPet(QMainWindow):
         dialog = SummaryDialog("三年后的自己 · 寄语", message, self)
         dialog.exec()
 
-    def open_growth_web_page(self):
-        local_page = self.WEB_HOME_PAGE.resolve()
-        if local_page.exists():
-            target_url = QUrl.fromLocalFile(str(local_page))
-        else:
+    def open_web_page(self, page_path: Path):
+        target_url = QUrl.fromLocalFile(str(page_path.resolve()))
+        if not page_path.exists():
             target_url = QUrl(self.WEB_FALLBACK_URL)
-
         ok = QDesktopServices.openUrl(target_url)
         if not ok:
             QMessageBox.warning(self, "打开失败", f"无法打开网页：{target_url.toString()}")
+
+    def open_growth_web_page(self):
+        self.open_web_page(self.WEB_HOME_PAGE)
 
 # 主程序
 if __name__ == "__main__":
