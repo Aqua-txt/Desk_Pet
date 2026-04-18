@@ -1,5 +1,8 @@
 import sys
 import re
+import json
+import random
+from datetime import date, datetime
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
@@ -43,10 +46,13 @@ class DesktopPet(QMainWindow):
         self.summary_store = SummaryStore(Path("data") / "video_summaries.json")
         self.growth_store = PetGrowthStore(Path("data") / "pet_growth.json")
         self.growth_state = self.growth_store.load_state()
+        self.passion_checkins_path = Path("data") / "passion_checkins.json"
         self.summary_pipeline = DouyinSummaryPipeline()
         self.web_server = LocalWebServer(
             project_root=Path(__file__).resolve().parent,
-            stats_provider=self.link_store.get_learning_stats,
+            stats_provider=self.get_learning_stats,
+            checkins_provider=self.get_passion_checkins,
+            checkin_adder=self.add_passion_checkin_from_web,
         )
         self.web_server.start()
 
@@ -171,10 +177,71 @@ class DesktopPet(QMainWindow):
         self.setFixedSize(width, height)
 
     def refresh_learning_ui(self):
-        stats = self.link_store.get_learning_stats()
+        stats = self.get_learning_stats()
         self.progress_bar.setMaximum(int(stats["progress_total"]))
         self.progress_bar.setValue(int(stats["level_progress"]))
         self.level_label.setText(f"Lv.{stats['level']}  经验 {stats['exp']}")
+
+    def get_passion_checkins(self) -> list[dict]:
+        if not self.passion_checkins_path.exists():
+            return []
+        try:
+            content = self.passion_checkins_path.read_text(encoding="utf-8").strip()
+            if not content:
+                return []
+            data = json.loads(content)
+            return data if isinstance(data, list) else []
+        except Exception:
+            return []
+
+    def save_passion_checkins(self, records: list[dict]) -> None:
+        self.passion_checkins_path.parent.mkdir(parents=True, exist_ok=True)
+        self.passion_checkins_path.write_text(
+            json.dumps(records, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    def add_passion_checkin_from_web(self, record: dict) -> list[dict]:
+        date_str = str(record.get("date", "")).strip()
+        if not date_str:
+            raise ValueError("date is required")
+
+        records = self.get_passion_checkins()
+        if any(str(item.get("date", "")).strip() == date_str for item in records):
+            raise ValueError("该日期已经打过卡")
+
+        normalized = {
+            "id": str(record.get("id", "") or f"{date_str}-{int(datetime.now().timestamp())}"),
+            "date": date_str,
+            "time": str(record.get("time", "") or datetime.now().isoformat(timespec="seconds")),
+            "passion": str(record.get("passion", "") or "未命名热爱"),
+            "duration": str(record.get("duration", "") or "30min"),
+            "durationLabel": str(record.get("durationLabel", "") or "15-30分钟"),
+            "content": str(record.get("content", "") or ""),
+            "imageData": str(record.get("imageData", "") or ""),
+        }
+        records.append(normalized)
+        records.sort(key=lambda item: str(item.get("date", "")))
+        self.save_passion_checkins(records)
+        self.refresh_learning_ui()
+        return records
+
+    def get_learning_stats(self) -> dict:
+        """学习经验 + 热爱打卡经验（统一给网页和桌宠展示）。"""
+        base = self.link_store.get_learning_stats()
+        passion_count = len(self.get_passion_checkins())
+        exp = int(base.get("exp", 0)) + passion_count * 10
+        max_level = 30
+        level = min(max_level, (exp // 20) + 1)
+        level_progress = 20 if level >= max_level else (exp % 20)
+        return {
+            "learned_count": int(base.get("learned_count", 0)),
+            "passion_checkin_count": passion_count,
+            "exp": exp,
+            "level": level,
+            "level_progress": level_progress,
+            "progress_total": 20,
+        }
 
     def current_level_config(self) -> dict:
         exp = int(self.growth_state.get("exp", 0))

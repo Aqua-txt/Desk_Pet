@@ -658,6 +658,7 @@
     const storeKey = "desk_pet_web_demo_state";
     const checkinStoreKey = "desk_pet_checkin_records";
     const STOP_WORDS = new Set(["今天", "自己", "因为", "然后", "一下", "非常", "这个", "那个", "我们", "你们", "他们", "热爱", "打卡", "坚持", "记录", "完成", "进行", "感觉", "一个", "一些"]);
+    const CHECKIN_API_ENDPOINTS = ["/api/passion-checkins", "http://127.0.0.1:8765/api/passion-checkins"];
     const TOAST_MESSAGES = [
       "你不是在重复小事，你是在锻造稳定的自己。",
       "今天也在发光，别小看这次打卡。",
@@ -733,6 +734,44 @@
 
     function saveCheckins(list) {
       localStorage.setItem(checkinStoreKey, JSON.stringify(list));
+    }
+
+    async function fetchServerCheckins() {
+      const local = loadCheckins();
+      for (const endpoint of CHECKIN_API_ENDPOINTS) {
+        try {
+          const response = await fetch(endpoint, { cache: "no-store" });
+          if (!response.ok) continue;
+          const payload = await response.json();
+          const data = Array.isArray(payload?.data) ? payload.data.map(normalizeCheckin) : [];
+          if (data.length || local.length === 0) {
+            saveCheckins(data);
+            return data;
+          }
+          return local;
+        } catch (_) {
+        }
+      }
+      return local;
+    }
+
+    async function postCheckinToServer(record) {
+      for (const endpoint of CHECKIN_API_ENDPOINTS) {
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ record })
+          });
+          if (!response.ok) continue;
+          const payload = await response.json();
+          const data = Array.isArray(payload?.data) ? payload.data.map(normalizeCheckin) : [];
+          saveCheckins(data);
+          return data;
+        } catch (_) {
+        }
+      }
+      return null;
     }
 
     function existsCheckin(dateStr) {
@@ -1086,7 +1125,7 @@
       });
     }
 
-    function submitCheckin(event) {
+    async function submitCheckin(event) {
       event.preventDefault();
       const passion = document.getElementById("passionName").value.trim();
       const content = document.getElementById("checkinContent").value.trim();
@@ -1107,8 +1146,7 @@
         return;
       }
 
-      const checkins = loadCheckins();
-      checkins.push({
+      const newRecord = {
         id: `${date}-${Date.now()}`,
         date,
         time: new Date().toLocaleString("zh-CN", { hour12: false }),
@@ -1117,14 +1155,27 @@
         durationLabel: getDurationLabel(duration),
         content,
         imageData: latestImageData
-      });
-      checkins.sort((a, b) => a.date.localeCompare(b.date));
-      saveCheckins(checkins);
+      };
+
+      let checkins = await postCheckinToServer(newRecord);
+      if (!checkins) {
+        checkins = loadCheckins();
+        checkins.push(newRecord);
+        checkins.sort((a, b) => a.date.localeCompare(b.date));
+        try {
+          saveCheckins(checkins);
+        } catch (_) {
+          alert("打卡内容或图片过大，浏览器本地存储失败。建议缩小图片后重试。");
+          return;
+        }
+      }
 
       const state = loadState();
       state.exp = Number(state.exp || 0) + 10;
+      state.syncedExp = Number(state.syncedExp || state.exp || 0) + 10;
       state.streak = Number(state.streak || 0) + 1;
       state.passionCount = Number(state.passionCount || 0) + 1;
+      state.dailyCheckinCount = Number(state.dailyCheckinCount || 0) + 1;
       state.logs = Array.isArray(state.logs) ? state.logs : [];
       const stamp = new Date().toLocaleString("zh-CN", { hour12: false });
       state.logs.push(`[${stamp}] 热爱打卡「${passion}」+10 EXP`);
@@ -1228,7 +1279,8 @@
       });
     }
 
-    function init() {
+    async function init() {
+      await fetchServerCheckins();
       setupCalendarControls();
       bindCalendarEvents();
       bindCloudRange();

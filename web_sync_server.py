@@ -12,9 +12,19 @@ from urllib.parse import urlparse
 class LocalWebServer:
     """提供静态网页和轻量同步 API。"""
 
-    def __init__(self, project_root: Path, stats_provider: Callable[[], dict], host: str = "127.0.0.1", port: int = 8765):
+    def __init__(
+        self,
+        project_root: Path,
+        stats_provider: Callable[[], dict],
+        checkins_provider: Callable[[], list] | None = None,
+        checkin_adder: Callable[[dict], list] | None = None,
+        host: str = "127.0.0.1",
+        port: int = 8765,
+    ):
         self.project_root = Path(project_root).resolve()
         self.stats_provider = stats_provider
+        self.checkins_provider = checkins_provider
+        self.checkin_adder = checkin_adder
         self.host = host
         self.port = port
         self._server: ThreadingHTTPServer | None = None
@@ -29,6 +39,8 @@ class LocalWebServer:
             return
 
         stats_provider = self.stats_provider
+        checkins_provider = self.checkins_provider
+        checkin_adder = self.checkin_adder
         directory = str(self.project_root)
 
         class Handler(SimpleHTTPRequestHandler):
@@ -45,7 +57,49 @@ class LocalWebServer:
                         return
                     self._send_json({"ok": True, "data": payload})
                     return
+                if parsed.path == "/api/passion-checkins":
+                    if checkins_provider is None:
+                        self._send_json({"ok": False, "error": "checkins provider unavailable"}, status=HTTPStatus.NOT_FOUND)
+                        return
+                    try:
+                        payload = checkins_provider()
+                    except Exception as exc:
+                        self._send_json({"ok": False, "error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+                        return
+                    self._send_json({"ok": True, "data": payload})
+                    return
                 return super().do_GET()
+
+            def do_POST(self):
+                parsed = urlparse(self.path)
+                if parsed.path != "/api/passion-checkins":
+                    self._send_json({"ok": False, "error": "not found"}, status=HTTPStatus.NOT_FOUND)
+                    return
+                if checkin_adder is None:
+                    self._send_json({"ok": False, "error": "checkin adder unavailable"}, status=HTTPStatus.NOT_FOUND)
+                    return
+
+                length = int(self.headers.get("Content-Length", "0") or "0")
+                body = self.rfile.read(length) if length > 0 else b"{}"
+                try:
+                    payload = json.loads(body.decode("utf-8"))
+                except Exception:
+                    self._send_json({"ok": False, "error": "invalid json"}, status=HTTPStatus.BAD_REQUEST)
+                    return
+
+                record = payload.get("record")
+                if not isinstance(record, dict):
+                    self._send_json({"ok": False, "error": "record must be object"}, status=HTTPStatus.BAD_REQUEST)
+                    return
+                try:
+                    new_list = checkin_adder(record)
+                except ValueError as exc:
+                    self._send_json({"ok": False, "error": str(exc)}, status=HTTPStatus.CONFLICT)
+                    return
+                except Exception as exc:
+                    self._send_json({"ok": False, "error": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+                    return
+                self._send_json({"ok": True, "data": new_list})
 
             def log_message(self, format, *args):
                 # 保持控制台简洁，避免刷屏
@@ -75,4 +129,3 @@ class LocalWebServer:
     def build_url(self, relative_path: str) -> str:
         normalized = relative_path.replace("\\", "/").lstrip("/")
         return f"http://{self.host}:{self.port}/{normalized}"
-

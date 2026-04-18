@@ -407,11 +407,6 @@
           每一次微小行动，都在被量化、被记录、被看见。
         </p>
       </div>
-      <div class="hero-tags">
-        <span>暖色成长风格</span>
-        <span>可交互路演看板</span>
-        <span>未来寄语生成</span>
-      </div>
     </section>
 
     <section class="kpi-grid">
@@ -592,7 +587,7 @@
         return {
           videoLearnCount: Math.max(0, Number(parsed.videoLearnCount || 0)),
           dailyCheckinCount: Math.max(0, Number(parsed.dailyCheckinCount || parsed.passionCount || 0)),
-          syncedExp: Math.max(0, Number(parsed.syncedExp || 0)),
+          syncedExp: Math.max(0, Number(parsed.syncedExp || parsed.exp || 0)),
           streak: Math.max(0, Number(parsed.streak || 0)),
           futureCount: Math.max(0, Number(parsed.futureCount || 0)),
           lastFutureMessage: String(parsed.lastFutureMessage || ""),
@@ -619,8 +614,12 @@
       }
     }
 
+    function getCheckinExpFromLocal() {
+      return loadCheckins().length * EXP_PER_DAILY_CHECKIN;
+    }
+
     function getTotalExp() {
-      return state.syncedExp;
+      return Math.max(state.syncedExp, getCheckinExpFromLocal());
     }
 
     function getLevelByExp(exp) {
