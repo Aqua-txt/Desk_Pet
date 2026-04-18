@@ -87,8 +87,9 @@ class DouyinLinkStore:
         links = self.get_links()
         learned_count = sum(1 for item in links if item.get("learned"))
         exp = learned_count * 5
-        level = (exp // 20) + 1
-        level_progress = exp % 20
+        max_level = 30
+        level = min(max_level, (exp // 20) + 1)
+        level_progress = 20 if level >= max_level else (exp % 20)
         return {
             "learned_count": learned_count,
             "exp": exp,

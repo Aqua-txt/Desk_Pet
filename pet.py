@@ -19,6 +19,7 @@ from PyQt6.QtGui import QAction, QColor, QDesktopServices, QPixmap, QScreen
 from services import DouyinSummaryPipeline
 from storage import DouyinLinkStore, PetGrowthStore, SummaryStore
 from ui import SavedLinksDialog
+from web_sync_server import LocalWebServer
 
 # 桌面宠物类
 class DesktopPet(QMainWindow):
@@ -43,6 +44,11 @@ class DesktopPet(QMainWindow):
         self.growth_store = PetGrowthStore(Path("data") / "pet_growth.json")
         self.growth_state = self.growth_store.load_state()
         self.summary_pipeline = DouyinSummaryPipeline()
+        self.web_server = LocalWebServer(
+            project_root=Path(__file__).resolve().parent,
+            stats_provider=self.link_store.get_learning_stats,
+        )
+        self.web_server.start()
 
         self.pet_frames = self.load_pet_frames()
         self.current_pet_index = 0
@@ -439,7 +445,9 @@ class DesktopPet(QMainWindow):
 
     def open_web_page(self, page_path: Path):
         target_url = QUrl.fromLocalFile(str(page_path.resolve()))
-        if not page_path.exists():
+        if self.web_server.running:
+            target_url = QUrl(self.web_server.build_url(str(page_path)))
+        elif not page_path.exists():
             target_url = QUrl(self.WEB_FALLBACK_URL)
         ok = QDesktopServices.openUrl(target_url)
         if not ok:
@@ -447,6 +455,12 @@ class DesktopPet(QMainWindow):
 
     def open_growth_web_page(self):
         self.open_web_page(self.WEB_HOME_PAGE)
+
+    def closeEvent(self, event):
+        try:
+            self.web_server.stop()
+        finally:
+            super().closeEvent(event)
 
 # 主程序
 if __name__ == "__main__":

@@ -27,6 +27,7 @@
     body {
       margin: 0;
       min-height: 100vh;
+      overflow: hidden;
       font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
       color: var(--text);
       background:
@@ -37,7 +38,7 @@
 
     .wrap {
       width: min(1180px, 93vw);
-      margin: 26px auto 42px;
+      margin: 56px auto 42px;
       display: grid;
       gap: 14px;
       position: relative;
@@ -321,6 +322,16 @@
       gap: 8px;
     }
 
+    .emotion-select {
+      border-radius: 11px;
+      border: 1px solid rgba(213, 154, 68, 0.34);
+      padding: 8px 10px;
+      min-width: 124px;
+      color: #7b5a31;
+      background: rgba(255, 247, 228, 0.78);
+      font-weight: 600;
+    }
+
     button {
       border-radius: 11px;
       border: 1px solid rgba(213, 154, 68, 0.34);
@@ -375,102 +386,6 @@
       .title {
         font-size: 27px;
       }
-      .nav-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-    }
-
-    .nav-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 12px;
-    }
-
-    .nav-card {
-      border-radius: var(--radius);
-      padding: 20px 16px;
-      text-decoration: none;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .nav-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      transition: opacity 0.3s ease;
-    }
-
-    .nav-card:hover::before {
-      opacity: 1;
-    }
-
-    .nav-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 16px 36px rgba(180, 132, 67, 0.2);
-    }
-
-    .nav-icon {
-      font-size: 36px;
-      z-index: 1;
-    }
-
-    .nav-title {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text);
-      z-index: 1;
-      text-align: center;
-    }
-
-    .nav-desc {
-      font-size: 11px;
-      color: var(--muted);
-      z-index: 1;
-      text-align: center;
-      line-height: 1.4;
-    }
-
-    .nav-growth {
-      background: linear-gradient(145deg, rgba(220, 161, 79, 0.08), rgba(192, 127, 42, 0.04));
-      border: 1px solid rgba(213, 154, 68, 0.25);
-    }
-
-    .nav-growth::before {
-      background: linear-gradient(135deg, rgba(220, 161, 79, 0.15), rgba(192, 127, 42, 0.08));
-    }
-
-    .nav-corner {
-      background: linear-gradient(145deg, rgba(124, 173, 99, 0.08), rgba(90, 138, 63, 0.04));
-      border: 1px solid rgba(124, 173, 99, 0.25);
-    }
-
-    .nav-corner::before {
-      background: linear-gradient(135deg, rgba(124, 173, 99, 0.15), rgba(90, 138, 63, 0.08));
-    }
-
-    .nav-passion {
-      background: linear-gradient(145deg, rgba(231, 76, 60, 0.06), rgba(255, 107, 157, 0.03));
-      border: 1px solid rgba(231, 76, 60, 0.22);
-    }
-
-    .nav-passion::before {
-      background: linear-gradient(135deg, rgba(231, 76, 60, 0.12), rgba(255, 107, 157, 0.06));
-    }
-
-    .nav-future {
-      background: linear-gradient(145deg, rgba(139, 92, 246, 0.07), rgba(109, 40, 217, 0.03));
-      border: 1px solid rgba(139, 92, 246, 0.22);
-    }
-
-    .nav-future::before {
-      background: linear-gradient(135deg, rgba(139, 92, 246, 0.14), rgba(109, 40, 217, 0.07));
     }
   </style>
 </head>
@@ -489,7 +404,6 @@
       <div>
         <h1 class="title">樱小宠成长仪表盘</h1>
         <p class="subtitle">
-          武汉大学 · 被忽视的角落 · 我热爱的事情 · 三年后的自己。<br>
           每一次微小行动，都在被量化、被记录、被看见。
         </p>
       </div>
@@ -500,33 +414,10 @@
       </div>
     </section>
 
-    <section class="nav-grid">
-      <a href="growth-panel.html" class="nav-card nav-growth">
-        <span class="nav-icon">📊</span>
-        <span class="nav-title">查看成长面板</span>
-        <span class="nav-desc">数据可视化 · 等级进度 · 成就徽章</span>
-      </a>
-      <a href="record-corner.html" class="nav-card nav-corner">
-        <span class="nav-icon">📍</span>
-        <span class="nav-title">记录被忽视角落</span>
-        <span class="nav-desc">发现武大隐秘角落 · +10 经验值</span>
-      </a>
-      <a href="passion-checkin.html" class="nav-card nav-passion">
-        <span class="nav-icon">💝</span>
-        <span class="nav-title">热爱打卡</span>
-        <span class="nav-desc">坚持你的热爱 · +15 经验值起</span>
-      </a>
-      <a href="future-message.html" class="nav-card nav-future">
-        <span class="nav-icon">🔮</span>
-        <span class="nav-title">生成三年后寄语</span>
-        <span class="nav-desc">来自未来的声音 · 收藏与分享</span>
-      </a>
-    </section>
-
     <section class="kpi-grid">
       <div class="card kpi">
         <p class="kpi-label">当前等级</p>
-        <p class="kpi-value" id="levelText">Lv1 初来乍到</p>
+        <p class="kpi-value" id="levelText">Lv1 学习起步</p>
         <p class="kpi-tip" id="levelTag">成长刚刚开始</p>
       </div>
       <div class="card kpi">
@@ -554,21 +445,21 @@
       <div class="progress-track">
         <div class="progress-fill" id="progressFill"></div>
       </div>
-      <p class="progress-desc" id="progressDesc">再记录 3 个角落，或 2 次热爱打卡即可升级。</p>
+      <p class="progress-desc" id="progressDesc">学习视频和每日打卡都会累积经验。</p>
     </section>
 
     <section class="layout">
       <div class="card panel">
         <h2>成长时间线</h2>
         <div class="stats">
-          <div class="pill" id="cornerCount">角落记录：0</div>
-          <div class="pill" id="passionCount">热爱打卡：0</div>
+          <div class="pill" id="videoCount">学习视频：0</div>
+          <div class="pill" id="checkinCount">每日打卡：0</div>
           <div class="pill" id="futureCount">寄语生成：0</div>
         </div>
         <ul class="timeline" id="timeline"></ul>
         <div class="btns">
-          <button class="btn-main" id="mockCorner">模拟记录角落 +10</button>
-          <button class="btn-main" id="mockPassion">模拟热爱打卡 +15</button>
+          <button class="btn-main" id="mockVideo">同步桌宠经验</button>
+          <button class="btn-main" id="mockCheckin">记录本地打卡 +10</button>
           <button class="btn-soft" id="resetData">重置演示数据</button>
         </div>
         <p class="muted">数据仅保存在浏览器本地，用于演示，不影响桌宠主程序。</p>
@@ -581,6 +472,13 @@
         </div>
         <div class="mission" id="missionBox">今日任务：在武大找一个平时不被关注的角落，写下你的观察与想法。</div>
         <div class="btns">
+          <select id="emotionSelect" class="emotion-select" title="选择寄语情感">
+            <option value="warm">温暖鼓励</option>
+            <option value="passionate">热血冲刺</option>
+            <option value="healing">治愈松弛</option>
+            <option value="firm">坚定理性</option>
+            <option value="humor">轻松幽默</option>
+          </select>
           <button class="btn-main" id="newFuture">生成新的未来寄语</button>
           <button class="btn-soft" id="newMission">刷新今日任务</button>
         </div>
@@ -589,20 +487,75 @@
   </main>
 
   <script>
-    const LEVELS = [
-      { level: 1, title: "初来乍到", min: 0, tagline: "成长刚刚开始" },
-      { level: 2, title: "有点期待", min: 30, tagline: "你开始有稳定节奏了" },
-      { level: 3, title: "热爱上头", min: 80, tagline: "热爱正在变成结果" },
-      { level: 4, title: "角落守护者", min: 150, tagline: "你在影响更多人" },
-      { level: 5, title: "未来引路人", min: 240, tagline: "你已形成个人路径" }
+    const EXP_PER_VIDEO = 5;
+    const EXP_PER_DAILY_CHECKIN = 10;
+    const EXP_PER_LEVEL = 20;
+    const MAX_LEVEL = 30;
+    const checkinStoreKey = "desk_pet_checkin_records";
+    const AI_ENDPOINT = localStorage.getItem("desk_pet_ai_endpoint") || "";
+    const AI_API_KEY = localStorage.getItem("desk_pet_ai_api_key") || "";
+    const AI_BASE_URL = localStorage.getItem("desk_pet_ai_base_url") || "https://ark.cn-beijing.volces.com/api/v3";
+    const AI_MODEL = localStorage.getItem("desk_pet_ai_model") || "doubao-seed-2.0-lite";
+    const LEVEL_TITLES = [
+      "破壳萌新",
+      "晨光探路者",
+      "银杏拾光者",
+      "小步快跑家",
+      "热爱点火员",
+      "日拱一卒侠",
+      "灵感捕手",
+      "任务清零王",
+      "专注修炼生",
+      "习惯锻造师",
+      "角落侦察官",
+      "行动加速器",
+      "耐力续航者",
+      "复盘工程师",
+      "成长合伙人",
+      "节奏掌舵手",
+      "长期主义者",
+      "热爱策展人",
+      "校园发光体",
+      "灵魂充电站",
+      "目标追踪师",
+      "稳定输出机",
+      "挑战破壁者",
+      "未来预备役",
+      "梦想施工队长",
+      "影响力扩散器",
+      "成长主理人",
+      "愿景架构师",
+      "星光引航者",
+      "樱小宠传说"
     ];
 
-    const FUTURE_TEXTS = [
-      "三年后的你会感谢现在的自己：在武大的一个角落，你开始认真对待热爱。",
-      "未来的你说：你的每次打卡都不是小事，它们正在塑造更稳定、更专业的你。",
-      "别小看今天这一步。三年后，你会用持续行动证明热爱不是口号。",
-      "你已经在路上了。继续记录被忽视的角落，继续做你真正想做的事。"
-    ];
+    const FUTURE_TEXTS = {
+      warm: [
+        "三年后的你想对现在说：谢谢你没有放弃这些看似微小却重要的坚持。",
+        "未来的你正在微笑：你把热爱一点点做成了生活的底色。",
+        "慢慢来，但别停。每一次打卡都在替未来的你减压、增稳、增光。"
+      ],
+      passionate: [
+        "三年后的你提醒现在：把今天这次行动，当成下一次冲刺的起跑线。",
+        "你已经不只是热爱者，而是在训练自己的执行力与战斗力。",
+        "继续冲，别等完美。持续输出会让你在关键节点突然爆发。"
+      ],
+      healing: [
+        "未来的你轻声说：你不必着急，稳定的小步前进已经很了不起。",
+        "允许自己慢一点，但请继续发光。你正在变成更舒服也更强的自己。",
+        "再给自己一点耐心，今天的温柔坚持会在明天开花。"
+      ],
+      firm: [
+        "三年后的你给出结论：长期重复正确动作，结果一定会出现。",
+        "你正在积累可复利的能力，持续记录就是最朴素的成长模型。",
+        "别被情绪牵着走，按计划做小事，你会越来越不可替代。"
+      ],
+      humor: [
+        "未来的你发来弹幕：今天不卷天赋，先卷连续性，赢在不鸽。",
+        "你现在的每次打卡，都是在给三年后的自己偷偷充值外挂。",
+        "别慌，大神也是从“先做五分钟”开始的，你已经领先昨天了。"
+      ]
+    };
 
     const MISSIONS = [
       "今日任务：在武大找一个平时不被关注的角落，写下你的观察与想法。",
@@ -613,14 +566,16 @@
 
     function createDefaultState() {
       return {
-        exp: 0,
+        videoLearnCount: 0,
+        dailyCheckinCount: 0,
+        syncedExp: 0,
         streak: 0,
-        cornerCount: 0,
-        passionCount: 0,
         futureCount: 0,
+        lastFutureMessage: "",
+        lastFutureEmotion: "warm",
         logs: [
           "欢迎来到樱小宠成长主页",
-          "试试点击下方按钮，模拟你的成长轨迹"
+          "学习视频 + 每日打卡，都能增加经验值"
         ]
       };
     }
@@ -635,11 +590,13 @@
         if (!raw) return fallback;
         const parsed = JSON.parse(raw);
         return {
-          exp: Math.max(0, Number(parsed.exp || 0)),
+          videoLearnCount: Math.max(0, Number(parsed.videoLearnCount || 0)),
+          dailyCheckinCount: Math.max(0, Number(parsed.dailyCheckinCount || parsed.passionCount || 0)),
+          syncedExp: Math.max(0, Number(parsed.syncedExp || 0)),
           streak: Math.max(0, Number(parsed.streak || 0)),
-          cornerCount: Math.max(0, Number(parsed.cornerCount || 0)),
-          passionCount: Math.max(0, Number(parsed.passionCount || 0)),
           futureCount: Math.max(0, Number(parsed.futureCount || 0)),
+          lastFutureMessage: String(parsed.lastFutureMessage || ""),
+          lastFutureEmotion: String(parsed.lastFutureEmotion || "warm"),
           logs: Array.isArray(parsed.logs) ? parsed.logs.slice(-26) : fallback.logs.slice()
         };
       } catch (_) {
@@ -651,50 +608,106 @@
       localStorage.setItem(storeKey, JSON.stringify(state));
     }
 
-    function getLevelByExp(exp) {
-      let current = LEVELS[0];
-      for (const lvl of LEVELS) {
-        if (exp >= lvl.min) current = lvl;
+    function loadCheckins() {
+      try {
+        const raw = localStorage.getItem(checkinStoreKey);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+        return [];
       }
-      return current;
     }
 
-    function getNextLevel(exp) {
-      const current = getLevelByExp(exp);
-      return LEVELS.find((item) => item.level === current.level + 1) || null;
+    function getTotalExp() {
+      return state.syncedExp;
+    }
+
+    function getLevelByExp(exp) {
+      return Math.min(MAX_LEVEL, Math.floor(exp / EXP_PER_LEVEL) + 1);
+    }
+
+    function getLevelTitle(level) {
+      return LEVEL_TITLES[Math.max(0, Math.min(MAX_LEVEL, level) - 1)];
+    }
+
+    function getLevelTag(level) {
+      if (level <= 5) return "成长刚刚开始，先稳住节奏";
+      if (level <= 10) return "你开始有稳定输出了";
+      if (level <= 15) return "热爱正在变成看得见的成果";
+      if (level <= 20) return "你在持续影响身边的人";
+      if (level <= 25) return "长期主义正在兑现价值";
+      if (level <= 29) return "离传说只差一步，坚持住";
+      return "恭喜满级，你已成为樱小宠传说";
+    }
+
+    function getNeedForNextLevel(exp) {
+      if (getLevelByExp(exp) >= MAX_LEVEL) return 0;
+      const progress = exp % EXP_PER_LEVEL;
+      return progress === 0 ? EXP_PER_LEVEL : (EXP_PER_LEVEL - progress);
     }
 
     function progressPercent(exp) {
-      const current = getLevelByExp(exp);
-      const next = getNextLevel(exp);
-      if (!next) return 100;
-      const range = Math.max(1, next.min - current.min);
-      return Math.min(100, Math.round(((exp - current.min) / range) * 100));
+      if (getLevelByExp(exp) >= MAX_LEVEL) return 100;
+      const progress = exp % EXP_PER_LEVEL;
+      return Math.round((progress / EXP_PER_LEVEL) * 100);
+    }
+
+    async function hydrateVideoStats() {
+      // 真同步：依次尝试同源 API 和固定本地服务地址（支持 file:// 直开）
+      const statsEndpoints = ["/api/learning-stats", "http://127.0.0.1:8765/api/learning-stats"];
+      for (const endpoint of statsEndpoints) {
+        try {
+          const response = await fetch(endpoint, { cache: "no-store" });
+          if (!response.ok) continue;
+          const payload = await response.json();
+          const data = payload && payload.data ? payload.data : null;
+          if (!data) continue;
+          state.videoLearnCount = Math.max(0, Number(data.learned_count || 0));
+          state.syncedExp = Math.max(0, Number(data.exp || 0));
+          return;
+        } catch (_) {
+        }
+      }
+
+      // 兼容旧模式（比如直接 file:// 打开）
+      try {
+        const response = await fetch("../data/douyin_links.json", { cache: "no-store" });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!Array.isArray(data)) return;
+        const learnedCount = data.filter((item) => item && item.learned).length;
+        state.videoLearnCount = Math.max(learnedCount, state.videoLearnCount);
+        state.syncedExp = state.videoLearnCount * EXP_PER_VIDEO;
+      } catch (_) {
+      }
     }
 
     function render() {
-      const current = getLevelByExp(state.exp);
-      const next = getNextLevel(state.exp);
-      const need = next ? Math.max(0, next.min - state.exp) : 0;
-      const percent = progressPercent(state.exp);
+      const totalExp = getTotalExp();
+      const currentLevel = getLevelByExp(totalExp);
+      const nextLevel = Math.min(MAX_LEVEL, currentLevel + 1);
+      const need = getNeedForNextLevel(totalExp);
+      const percent = progressPercent(totalExp);
+      const isMaxLevel = currentLevel >= MAX_LEVEL;
 
-      document.getElementById("levelText").textContent = `Lv${current.level} ${current.title}`;
-      document.getElementById("levelTag").textContent = current.tagline;
-      document.getElementById("expText").textContent = String(state.exp);
+      document.getElementById("levelText").textContent = `Lv${currentLevel} ${getLevelTitle(currentLevel)}`;
+      document.getElementById("levelTag").textContent = getLevelTag(currentLevel);
+      document.getElementById("expText").textContent = String(totalExp);
       document.getElementById("streakText").textContent = `${state.streak} 天`;
-      document.getElementById("nextText").textContent = next ? String(need) : "已满级";
-      document.getElementById("cornerCount").textContent = `角落记录：${state.cornerCount}`;
-      document.getElementById("passionCount").textContent = `热爱打卡：${state.passionCount}`;
+      document.getElementById("nextText").textContent = isMaxLevel ? "已满级" : String(need);
+      document.getElementById("videoCount").textContent = `学习视频：${state.videoLearnCount}`;
+      document.getElementById("checkinCount").textContent = `每日打卡：${state.dailyCheckinCount}`;
       document.getElementById("futureCount").textContent = `寄语生成：${state.futureCount}`;
 
-      document.getElementById("progressLabel").textContent = next
-        ? `Lv${current.level} 到 Lv${next.level} 进度`
-        : "当前已满级";
+      document.getElementById("progressLabel").textContent = isMaxLevel
+        ? `Lv${MAX_LEVEL} 已满级`
+        : `Lv${currentLevel} 到 Lv${nextLevel} 进度`;
       document.getElementById("progressPercent").textContent = `${percent}%`;
       document.getElementById("progressFill").style.width = `${percent}%`;
-      document.getElementById("progressDesc").textContent = next
-        ? `再获得 ${need} 点经验即可升级到 ${next.title}。`
-        : "你已经达到最高等级，继续打卡将巩固你的成长曲线。";
+      document.getElementById("progressDesc").textContent = isMaxLevel
+        ? "你已经达到 Lv30 满级，继续保持学习节奏。"
+        : `再获得 ${need} 点经验即可升到 Lv${nextLevel}。当前经验与桌宠实时同步。`;
 
       const timeline = document.getElementById("timeline");
       timeline.innerHTML = "";
@@ -729,26 +742,150 @@
       return arr[Math.floor(Math.random() * arr.length)];
     }
 
-    document.getElementById("mockCorner").addEventListener("click", () => {
-      state.exp += 10;
-      state.streak += 1;
-      state.cornerCount += 1;
-      pushLog("记录了一个被忽视角落，经验 +10");
+    function normalizeMessage(text) {
+      return String(text || "").replace(/\s+/g, " ").trim();
+    }
+
+    function pickEmotionFallback(emotion, avoidText = "") {
+      const candidates = FUTURE_TEXTS[emotion] || FUTURE_TEXTS.warm;
+      const avoid = normalizeMessage(avoidText);
+      const filtered = candidates.filter((item) => normalizeMessage(item) !== avoid);
+      return randomPick(filtered.length ? filtered : candidates);
+    }
+
+    function buildAIPrompt(emotion, avoidText) {
+      const totalExp = getTotalExp();
+      const level = getLevelByExp(totalExp);
+      const toneMap = {
+        warm: "温暖鼓励",
+        passionate: "热血冲刺",
+        healing: "治愈松弛",
+        firm: "坚定理性",
+        humor: "轻松幽默"
+      };
+      return [
+        "你是“樱小宠”的未来寄语生成助手。",
+        `请生成 1 段中文寄语，情感风格：${toneMap[emotion] || "温暖鼓励"}。`,
+        "要求：",
+        "1) 45-80 字；",
+        "2) 要结合“武汉大学、被忽视角落、热爱打卡、三年后的自己”；",
+        "3) 不要使用编号，不要输出解释，直接输出寄语正文；",
+        `4) 禁止与这条内容重复或高度相似：${avoidText || "（无）"}。`,
+        `当前状态：Lv${level}，经验 ${totalExp}，连续打卡 ${state.streak} 天，学习视频 ${state.videoLearnCount} 个，每日打卡 ${state.dailyCheckinCount} 次。`
+      ].join("\n");
+    }
+
+    async function requestFutureMessageFromAI(emotion, avoidText) {
+      const prompt = buildAIPrompt(emotion, avoidText);
+
+      // 优先调用你已有的后端接口（推荐），例如 localStorage 设置 desk_pet_ai_endpoint
+      if (AI_ENDPOINT) {
+        const response = await fetch(AI_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            emotion,
+            prompt,
+            avoid_text: avoidText,
+            context: {
+              level: getLevelByExp(getTotalExp()),
+              exp: getTotalExp(),
+              streak: state.streak,
+              video_count: state.videoLearnCount,
+              daily_checkin_count: state.dailyCheckinCount
+            }
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`AI endpoint error: ${response.status}`);
+        }
+        const payload = await response.json();
+        const content = normalizeMessage(
+          payload.message ||
+          payload.content ||
+          (payload.data && payload.data.message) ||
+          ""
+        );
+        if (!content) throw new Error("AI endpoint empty message");
+        return content;
+      }
+
+      // 兼容直接调用 Doubao（仅在你愿意把 key 放到 localStorage 时）
+      if (AI_API_KEY) {
+        const response = await fetch(`${AI_BASE_URL}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${AI_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: AI_MODEL,
+            messages: [
+              { role: "system", content: "你是擅长中文写作的未来寄语助手。" },
+              { role: "user", content: prompt }
+            ],
+            temperature: 0.9
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`Doubao API error: ${response.status}`);
+        }
+        const payload = await response.json();
+        const content = normalizeMessage(
+          payload?.choices?.[0]?.message?.content || ""
+        );
+        if (!content) throw new Error("Doubao API empty message");
+        return content;
+      }
+
+      throw new Error("AI interface not configured");
+    }
+
+    async function generateFutureMessage(emotion) {
+      const last = normalizeMessage(state.lastFutureMessage);
+      try {
+        let msg = await requestFutureMessageFromAI(emotion, last);
+        if (normalizeMessage(msg) === last && last) {
+          msg = await requestFutureMessageFromAI(emotion, `${last}（请务必换新表达）`);
+        }
+        if (normalizeMessage(msg) !== last) {
+          return msg;
+        }
+      } catch (_) {
+      }
+      return pickEmotionFallback(emotion, last);
+    }
+
+    function emotionLabel(emotion) {
+      const map = {
+        warm: "温暖鼓励",
+        passionate: "热血冲刺",
+        healing: "治愈松弛",
+        firm: "坚定理性",
+        humor: "轻松幽默"
+      };
+      return map[emotion] || "温暖鼓励";
+    }
+
+    document.getElementById("mockVideo").addEventListener("click", async () => {
+      await hydrateVideoStats();
+      saveState();
+      render();
+      pushLog("已从桌宠同步最新经验");
     });
 
-    document.getElementById("mockPassion").addEventListener("click", () => {
-      state.exp += 15;
+    document.getElementById("mockCheckin").addEventListener("click", () => {
+      state.dailyCheckinCount += 1;
       state.streak += 1;
-      state.passionCount += 1;
-      pushLog("完成一次热爱打卡，经验 +15");
+      pushLog("完成一次本地打卡记录（不影响桌宠经验）");
     });
 
     document.getElementById("resetData").addEventListener("click", () => {
       const reset = createDefaultState();
-      state.exp = reset.exp;
+      state.videoLearnCount = reset.videoLearnCount;
+      state.dailyCheckinCount = reset.dailyCheckinCount;
+      state.syncedExp = reset.syncedExp;
       state.streak = reset.streak;
-      state.cornerCount = reset.cornerCount;
-      state.passionCount = reset.passionCount;
       state.futureCount = reset.futureCount;
       state.logs = reset.logs.slice();
       document.getElementById("futureBox").textContent = "三年后的你想对现在说：先从一次角落记录开始，把热爱变成可累计的行动。";
@@ -757,11 +894,22 @@
       render();
     });
 
-    document.getElementById("newFuture").addEventListener("click", () => {
-      const msg = randomPick(FUTURE_TEXTS);
-      document.getElementById("futureBox").textContent = msg;
-      state.futureCount += 1;
-      pushLog("生成了一条新的三年后寄语");
+    document.getElementById("newFuture").addEventListener("click", async () => {
+      const btn = document.getElementById("newFuture");
+      const emotion = document.getElementById("emotionSelect").value;
+      btn.disabled = true;
+      btn.textContent = "生成中...";
+      try {
+        const msg = await generateFutureMessage(emotion);
+        document.getElementById("futureBox").textContent = msg;
+        state.futureCount += 1;
+        state.lastFutureMessage = msg;
+        state.lastFutureEmotion = emotion;
+        pushLog(`生成了一条新的三年后寄语（${emotionLabel(emotion)}）`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "生成新的未来寄语";
+      }
     });
 
     document.getElementById("newMission").addEventListener("click", () => {
@@ -769,7 +917,22 @@
       pushLog("刷新了今日任务建议");
     });
 
-    render();
+    async function init() {
+      await hydrateVideoStats();
+      const emotionSelect = document.getElementById("emotionSelect");
+      if (emotionSelect && state.lastFutureEmotion) {
+        emotionSelect.value = state.lastFutureEmotion;
+      }
+      saveState();
+      render();
+      setInterval(async () => {
+        await hydrateVideoStats();
+        saveState();
+        render();
+      }, 8000);
+    }
+
+    init();
   </script>
 </body>
 </html>
